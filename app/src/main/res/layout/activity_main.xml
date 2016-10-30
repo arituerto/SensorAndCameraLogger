@@ -15,7 +15,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:inputType="textPersonName"
-        android:text="Data Set Name"
+        android:text="DataSetName"
         android:ems="10"
         android:layout_alignParentTop="true"
         android:layout_alignParentStart="true"
@@ -25,30 +25,23 @@
         android:text="Start"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/inputDataSetName"
+        android:id="@+id/buttonStartLogging"
+        android:layout_centerVertical="true"
         android:layout_alignParentStart="true"
-        android:id="@+id/buttonStartLogging" />
+        style="@style/Widget.AppCompat.Button.Borderless.Colored"
+        android:background="@android:color/holo_green_dark"
+        android:textColor="@android:color/black" />
 
     <Button
         android:text="Stop"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/inputDataSetName"
+        android:id="@+id/buttonStopLogging"
+        android:layout_alignBaseline="@+id/buttonStartLogging"
+        android:layout_alignBottom="@+id/buttonStartLogging"
         android:layout_alignParentEnd="true"
-        android:id="@+id/buttonStopLogging" />
+        style="@style/Widget.AppCompat.Button.Borderless.Colored"
+        android:background="@android:color/holo_red_dark"
+        android:textColor="@android:color/black" />
 
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/buttonStartLogging"
-        android:layout_alignParentStart="true"
-        android:id="@+id/ScrollViewSensors"
-        android:clipToPadding="false">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:id="@+id/ScrollViewLinearLayout" />
-    </ScrollView>
 </RelativeLayout>

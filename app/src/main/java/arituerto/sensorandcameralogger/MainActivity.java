@@ -4,32 +4,39 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.LinearLayout;
-import android.widget.ScrollView;
+import android.widget.EditText;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
-    private static final String TAG = "MainActivity::";
+    private static final String TAG = "MainActivity:: ";
 
     // Variables for sensor reading
     private SensorManager mSensorManager;
     private List<Sensor> mSensorList;
-    LinearLayout linearLayoutSensorList;
-    CheckBox checkBoxSensor;
+    private Map<Sensor, Logger> mSensorLoggerMap;
 
     // Logging data
     private boolean mLoggingActive;
     private File loggingDir;
     private File imageDir;
+    private String dataSetName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,21 +48,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
         mSensorList = mSensorManager.getSensorList(Sensor.TYPE_ALL);
+        mSensorLoggerMap = new HashMap<Sensor, Logger>();
 
-        linearLayoutSensorList = (LinearLayout) findViewById(R.id.ScrollViewLinearLayout);
-
-        for (int i = 0; i < mSensorList.size(); i++) {
-            checkBoxSensor = new CheckBox(this);
-            checkBoxSensor.setId(i);
-            checkBoxSensor.setText(mSensorList.get(i).getName());
-            checkBoxSensor.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Log.i(TAG, String.format("checkbox onClick, isSelected: %s, Name: %s", checkBoxSensor.isSelected(), checkBoxSensor.getText()));
-
-                }
-            });
-            linearLayoutSensorList.addView(checkBoxSensor);
+        ListIterator<Sensor> iter = mSensorList.listIterator();
+        while (iter.hasNext()) {
+            mSensorManager.registerListener(this,iter.next(),1000);
         }
 
         final Button startButton = (Button) findViewById(R.id.buttonStartLogging);
@@ -64,17 +61,88 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         stopButton.setOnClickListener(stopClick);
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mSensorManager.unregisterListener(this);
+    }
+
     private View.OnClickListener startClick = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            Log.i(TAG, " Start Logging");
+
+            if (!mLoggingActive) {
+
+                Log.i(TAG, "Start Logging");
+
+                EditText textEntry = (EditText) findViewById(R.id.inputDataSetName);
+                dataSetName = textEntry.getText().toString();
+
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HHmmss");
+                String currentDateandTime = sdf.format(new Date());
+
+                // Create directory
+                loggingDir = new File(Environment.getExternalStorageDirectory().getPath() +
+                        "/" + currentDateandTime + "_" + dataSetName);
+                try {
+                    loggingDir.mkdirs();
+                } catch (Exception e) {
+                    Log.i(TAG, e.getMessage());
+                }
+                imageDir = new File(loggingDir.getPath() + "/images");
+                try {
+                    imageDir.mkdirs();
+                } catch (Exception e) {
+                    Log.i(TAG, e.getMessage());
+                }
+
+                ListIterator<Sensor> iter = mSensorList.listIterator();
+                String loggerFileName = new String();
+                while (iter.hasNext()) {
+                    Sensor key = iter.next();
+
+                    String sensorTypeString = key.getStringType();
+                    loggerFileName = loggingDir.getPath() + "/sensor_" + sensorTypeString + "_log.csv";
+
+                    String csvFormat = "// SYSTEM_TIME [ns], EVENT_TIMESTAMP [ns], EVENT_" + sensorTypeString + "_VALUES";
+                    try {
+                        Logger logger = new Logger(loggerFileName);
+                        mSensorLoggerMap.put(key, logger);
+                        try {
+                            logger.log(csvFormat);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    }
+                }
+                mLoggingActive = true;
+            } else {
+                Log.i(TAG, "System is already Logging");
+            }
         }
     };
 
     private View.OnClickListener stopClick = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            Log.i(TAG, " Stop Logging");
+            if (mLoggingActive) {
+                Log.i(TAG, "Stop Logging");
+                Iterator<Map.Entry<Sensor,Logger>> iter = mSensorLoggerMap.entrySet().iterator();
+                while (iter.hasNext()) {
+                    try {
+                        iter.next().getValue().close();
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+                mSensorLoggerMap.clear();
+
+                mLoggingActive = false;
+            } else {
+                Log.i(TAG, "System is not Logging");
+            }
         }
     };
 
@@ -83,6 +151,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     public void onSensorChanged(SensorEvent event) {
-
+        if (mLoggingActive) {
+            Sensor key = event.sensor;
+            Logger sensorLogger = mSensorLoggerMap.get(key);
+            // TODO: TIME REFERENCE!!
+            String eventData = System.nanoTime() + "," + event.timestamp;
+            for (float i : event.values){
+                eventData += "," + i;
+            }
+            try {
+                sensorLogger.log(eventData);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }
