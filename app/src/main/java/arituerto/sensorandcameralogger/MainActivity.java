@@ -5,39 +5,42 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.hardware.camera2.CameraAccessException;
-import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
-import android.hardware.camera2.CaptureRequest;
+import android.os.Build;
 import android.os.Environment;
+import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
     private static final String TAG = "MainActivity:: ";
 
-    // Variables for sensor reading
+    // SENSORS
     private SensorManager mSensorManager;
     private List<Sensor> mSensorList;
+    private List<Sensor> mSelectedSensorList;
     private Map<Sensor, Logger> mSensorLoggerMap;
 
+    // CAMERA
     private CameraManager mCameraManager;
     private CameraDevice mCameraDevice;
 
@@ -46,6 +49,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private File loggingDir;
     private File imageDir;
     private String dataSetName;
+
+    private ProgressBar progressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,34 +62,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
         mSensorList = mSensorManager.getSensorList(Sensor.TYPE_ALL);
+        mSelectedSensorList = new ArrayList<Sensor>(mSensorList);
         mSensorLoggerMap = new HashMap<Sensor, Logger>();
 
-        ListIterator<Sensor> iter = mSensorList.listIterator();
-        while (iter.hasNext()) {
-            mSensorManager.registerListener(this,iter.next(),1000);
-        }
+        progressBar = (ProgressBar) findViewById(R.id.progressBar);
+        progressBar.setVisibility(View.GONE);
 
-        String cameraIdList[];
+        startSensorListeners(mSelectedSensorList);
+
         mCameraManager = (CameraManager)getSystemService(CAMERA_SERVICE);
-        try {
-            cameraIdList = mCameraManager.getCameraIdList();
-        } catch (CameraAccessException e) {
-            Log.i(TAG, e.getMessage());
-            cameraIdList = null;
-        }
-
-        if (cameraIdList != null) {
-            for (int i = 0; i < cameraIdList.length; i++) {
-                String cameraId = cameraIdList[i];
-                Log.i(TAG, "CAMERAID - " + cameraId);
-                try {
-                    CameraCharacteristics characteristics = mCameraManager.getCameraCharacteristics(cameraId);
-                    Log.i(TAG, "LENS FACING - " + characteristics.get(CameraCharacteristics.LENS_FACING).toString());
-                } catch (Exception e) {
-                    Log.i(TAG, e.getMessage());
-                }
-            }
-        }
 
         final Button startButton = (Button) findViewById(R.id.buttonStartLogging);
         startButton.setOnClickListener(startClick);
@@ -95,6 +81,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     public void onDestroy() {
         super.onDestroy();
+        stopSensorListeners();
+
+    }
+
+    private void startSensorListeners(List<Sensor> sensorList) {
+        for (Sensor iSensor : sensorList) {
+            mSensorManager.registerListener(this,iSensor,SensorManager.SENSOR_DELAY_FASTEST);
+        }
+    }
+
+    private void stopSensorListeners() {
         mSensorManager.unregisterListener(this);
     }
 
@@ -114,12 +111,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 // Create directory
                 loggingDir = new File(Environment.getExternalStorageDirectory().getPath() +
-                        "/" + currentDateAndTime + "_" + dataSetName);
+                        "/" + currentDateAndTime +
+                        "_" + Build.MANUFACTURER +
+                        "_" + Build.MODEL +
+                        "_" + dataSetName);
                 try {
                     loggingDir.mkdirs();
                 } catch (Exception e) {
                     Log.i(TAG, e.getMessage());
                 }
+
                 imageDir = new File(loggingDir.getPath() + "/images");
                 try {
                     imageDir.mkdirs();
@@ -127,19 +128,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     Log.i(TAG, e.getMessage());
                 }
 
-                ListIterator<Sensor> iter = mSensorList.listIterator();
-                String loggerFileName = new String();
-                while (iter.hasNext()) {
-                    Sensor key = iter.next();
+                String loggerFileName;
+                for (Sensor iSensor : mSensorList) {
 
-                    String sensorTypeString = key.getStringType();
-                    // TODO: Get last part of the type string and change to capital letters
-                    loggerFileName = loggingDir.getPath() + "/sensor_" + sensorTypeString + "_log.csv";
+                    String sensorTypeString = iSensor.getStringType();
+                    String[] parts = sensorTypeString.split("\\.");
+                    loggerFileName = loggingDir.getPath() + "/sensor_" + parts[parts.length - 1].toUpperCase() + "_log.csv";
 
+                    // First line: Data description
                     String csvFormat = "// SYSTEM_TIME [ns], EVENT_TIMESTAMP [ns], EVENT_" + sensorTypeString + "_VALUES";
                     try {
                         Logger logger = new Logger(loggerFileName);
-                        mSensorLoggerMap.put(key, logger);
+                        mSensorLoggerMap.put(iSensor, logger);
                         try {
                             logger.log(csvFormat);
                         } catch (IOException e) {
@@ -150,6 +150,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     }
                 }
                 mLoggingActive = true;
+                progressBar.setVisibility(View.VISIBLE);
             } else {
                 Log.i(TAG, "System is already Logging");
             }
@@ -161,17 +162,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         public void onClick(View v) {
             if (mLoggingActive) {
                 Log.i(TAG, "Stop Logging");
-                Iterator<Map.Entry<Sensor,Logger>> iter = mSensorLoggerMap.entrySet().iterator();
-                while (iter.hasNext()) {
+                for (Map.Entry<Sensor, Logger> iSensorLogger : mSensorLoggerMap.entrySet()) {
                     try {
-                        iter.next().getValue().close();
+                        iSensorLogger.getValue().close();
                     } catch (IOException ex) {
                         ex.printStackTrace();
                     }
                 }
                 mSensorLoggerMap.clear();
-
                 mLoggingActive = false;
+                progressBar.setVisibility(View.GONE);
             } else {
                 Log.i(TAG, "System is not Logging");
             }
@@ -186,8 +186,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (mLoggingActive) {
             Sensor key = event.sensor;
             Logger sensorLogger = mSensorLoggerMap.get(key);
-            // TODO: TIME REFERENCE!!
-            String eventData = System.nanoTime() + "," + event.timestamp;
+            String eventData = SystemClock.elapsedRealtimeNanos() + "," + event.timestamp;
             for (float i : event.values){
                 eventData += "," + i;
             }

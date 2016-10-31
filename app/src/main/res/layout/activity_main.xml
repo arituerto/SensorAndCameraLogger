@@ -15,11 +15,11 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:inputType="textPersonName"
-        android:text="DataSetName"
         android:ems="10"
         android:layout_alignParentTop="true"
         android:layout_alignParentStart="true"
-        android:id="@+id/inputDataSetName" />
+        android:id="@+id/inputDataSetName"
+        android:hint="Dataset Name" />
 
     <Button
         android:text="Stop"
@@ -41,7 +41,16 @@
         style="@style/Widget.AppCompat.Button.Borderless.Colored"
         android:background="@android:color/holo_green_dark"
         android:textColor="@android:color/black"
-        android:layout_below="@+id/inputDataSetName"
+        android:layout_alignParentBottom="true"
         android:layout_alignParentStart="true" />
+
+    <ProgressBar
+        style="?android:attr/progressBarStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/progressBar"
+        android:indeterminate="false"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true" />
 
 </RelativeLayout>
