@@ -4,6 +4,12 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraCaptureSession;
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraDevice;
+import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.CaptureRequest;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -32,6 +38,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private List<Sensor> mSensorList;
     private Map<Sensor, Logger> mSensorLoggerMap;
 
+    private CameraManager mCameraManager;
+    private CameraDevice mCameraDevice;
+
     // Logging data
     private boolean mLoggingActive;
     private File loggingDir;
@@ -53,6 +62,28 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         ListIterator<Sensor> iter = mSensorList.listIterator();
         while (iter.hasNext()) {
             mSensorManager.registerListener(this,iter.next(),1000);
+        }
+
+        String cameraIdList[];
+        mCameraManager = (CameraManager)getSystemService(CAMERA_SERVICE);
+        try {
+            cameraIdList = mCameraManager.getCameraIdList();
+        } catch (CameraAccessException e) {
+            Log.i(TAG, e.getMessage());
+            cameraIdList = null;
+        }
+
+        if (cameraIdList != null) {
+            for (int i = 0; i < cameraIdList.length; i++) {
+                String cameraId = cameraIdList[i];
+                Log.i(TAG, "CAMERAID - " + cameraId);
+                try {
+                    CameraCharacteristics characteristics = mCameraManager.getCameraCharacteristics(cameraId);
+                    Log.i(TAG, "LENS FACING - " + characteristics.get(CameraCharacteristics.LENS_FACING).toString());
+                } catch (Exception e) {
+                    Log.i(TAG, e.getMessage());
+                }
+            }
         }
 
         final Button startButton = (Button) findViewById(R.id.buttonStartLogging);
@@ -79,11 +110,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 dataSetName = textEntry.getText().toString();
 
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HHmmss");
-                String currentDateandTime = sdf.format(new Date());
+                String currentDateAndTime = sdf.format(new Date());
 
                 // Create directory
                 loggingDir = new File(Environment.getExternalStorageDirectory().getPath() +
-                        "/" + currentDateandTime + "_" + dataSetName);
+                        "/" + currentDateAndTime + "_" + dataSetName);
                 try {
                     loggingDir.mkdirs();
                 } catch (Exception e) {
@@ -102,6 +133,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     Sensor key = iter.next();
 
                     String sensorTypeString = key.getStringType();
+                    // TODO: Get last part of the type string and change to capital letters
                     loggerFileName = loggingDir.getPath() + "/sensor_" + sensorTypeString + "_log.csv";
 
                     String csvFormat = "// SYSTEM_TIME [ns], EVENT_TIMESTAMP [ns], EVENT_" + sensorTypeString + "_VALUES";

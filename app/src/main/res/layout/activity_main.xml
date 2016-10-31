@@ -22,17 +22,6 @@
         android:id="@+id/inputDataSetName" />
 
     <Button
-        android:text="Start"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/buttonStartLogging"
-        android:layout_centerVertical="true"
-        android:layout_alignParentStart="true"
-        style="@style/Widget.AppCompat.Button.Borderless.Colored"
-        android:background="@android:color/holo_green_dark"
-        android:textColor="@android:color/black" />
-
-    <Button
         android:text="Stop"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -43,5 +32,16 @@
         style="@style/Widget.AppCompat.Button.Borderless.Colored"
         android:background="@android:color/holo_red_dark"
         android:textColor="@android:color/black" />
+
+    <Button
+        android:text="Start"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/buttonStartLogging"
+        style="@style/Widget.AppCompat.Button.Borderless.Colored"
+        android:background="@android:color/holo_green_dark"
+        android:textColor="@android:color/black"
+        android:layout_below="@+id/inputDataSetName"
+        android:layout_alignParentStart="true" />
 
 </RelativeLayout>
