@@ -76,6 +76,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         startButton.setOnClickListener(startClick);
         final Button stopButton = (Button) findViewById(R.id.buttonStopLogging);
         stopButton.setOnClickListener(stopClick);
+        final Button sensorSettingsButton = (Button) findViewById(R.id.buttonSensorSettings);
+        sensorSettingsButton.setOnClickListener(sensorSettingsClick);
     }
 
     @Override
@@ -95,88 +97,67 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mSensorManager.unregisterListener(this);
     }
 
-    private View.OnClickListener startClick = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
+    private void startLogging() {
 
-            if (!mLoggingActive) {
+        EditText textEntry = (EditText) findViewById(R.id.inputDataSetName);
+        dataSetName = textEntry.getText().toString();
 
-                Log.i(TAG, "Start Logging");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HHmmss");
+        String currentDateAndTime = sdf.format(new Date());
 
-                EditText textEntry = (EditText) findViewById(R.id.inputDataSetName);
-                dataSetName = textEntry.getText().toString();
+        // Create directory
+        loggingDir = new File(Environment.getExternalStorageDirectory().getPath() +
+                "/" + currentDateAndTime +
+                "_" + Build.MANUFACTURER +
+                "_" + Build.MODEL +
+                "_" + dataSetName);
+        try {
+            loggingDir.mkdirs();
+        } catch (Exception e) {
+            Log.i(TAG, e.getMessage());
+        }
 
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HHmmss");
-                String currentDateAndTime = sdf.format(new Date());
+        imageDir = new File(loggingDir.getPath() + "/images");
+        try {
+            imageDir.mkdirs();
+        } catch (Exception e) {
+            Log.i(TAG, e.getMessage());
+        }
 
-                // Create directory
-                loggingDir = new File(Environment.getExternalStorageDirectory().getPath() +
-                        "/" + currentDateAndTime +
-                        "_" + Build.MANUFACTURER +
-                        "_" + Build.MODEL +
-                        "_" + dataSetName);
+        String loggerFileName;
+        for (Sensor iSensor : mSensorList) {
+
+            String sensorTypeString = iSensor.getStringType();
+            String[] parts = sensorTypeString.split("\\.");
+            loggerFileName = loggingDir.getPath() + "/sensor_" + parts[parts.length - 1].toUpperCase() + "_log.csv";
+
+            // First line: Data description
+            String csvFormat = "// SYSTEM_TIME [ns], EVENT_TIMESTAMP [ns], EVENT_" + sensorTypeString + "_VALUES";
+            try {
+                Logger logger = new Logger(loggerFileName);
+                mSensorLoggerMap.put(iSensor, logger);
                 try {
-                    loggingDir.mkdirs();
-                } catch (Exception e) {
-                    Log.i(TAG, e.getMessage());
+                    logger.log(csvFormat);
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-
-                imageDir = new File(loggingDir.getPath() + "/images");
-                try {
-                    imageDir.mkdirs();
-                } catch (Exception e) {
-                    Log.i(TAG, e.getMessage());
-                }
-
-                String loggerFileName;
-                for (Sensor iSensor : mSensorList) {
-
-                    String sensorTypeString = iSensor.getStringType();
-                    String[] parts = sensorTypeString.split("\\.");
-                    loggerFileName = loggingDir.getPath() + "/sensor_" + parts[parts.length - 1].toUpperCase() + "_log.csv";
-
-                    // First line: Data description
-                    String csvFormat = "// SYSTEM_TIME [ns], EVENT_TIMESTAMP [ns], EVENT_" + sensorTypeString + "_VALUES";
-                    try {
-                        Logger logger = new Logger(loggerFileName);
-                        mSensorLoggerMap.put(iSensor, logger);
-                        try {
-                            logger.log(csvFormat);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    } catch (FileNotFoundException e) {
-                        e.printStackTrace();
-                    }
-                }
-                mLoggingActive = true;
-                progressBar.setVisibility(View.VISIBLE);
-            } else {
-                Log.i(TAG, "System is already Logging");
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
             }
         }
-    };
 
-    private View.OnClickListener stopClick = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            if (mLoggingActive) {
-                Log.i(TAG, "Stop Logging");
-                for (Map.Entry<Sensor, Logger> iSensorLogger : mSensorLoggerMap.entrySet()) {
-                    try {
-                        iSensorLogger.getValue().close();
-                    } catch (IOException ex) {
-                        ex.printStackTrace();
-                    }
-                }
-                mSensorLoggerMap.clear();
-                mLoggingActive = false;
-                progressBar.setVisibility(View.GONE);
-            } else {
-                Log.i(TAG, "System is not Logging");
+    }
+
+    private void stopLogging() {
+        for (Map.Entry<Sensor, Logger> iSensorLogger : mSensorLoggerMap.entrySet()) {
+            try {
+                iSensorLogger.getValue().close();
+            } catch (IOException ex) {
+                ex.printStackTrace();
             }
         }
-    };
+        mSensorLoggerMap.clear();
+    }
 
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
@@ -197,4 +178,40 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         }
     }
+
+    private View.OnClickListener startClick = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+
+            if (!mLoggingActive) {
+                Log.i(TAG, "Start Logging");
+                startLogging();
+                mLoggingActive = true;
+                progressBar.setVisibility(View.VISIBLE);
+            } else {
+                Log.i(TAG, "System is already Logging");
+            }
+        }
+    };
+
+    private View.OnClickListener stopClick = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            if (mLoggingActive) {
+                Log.i(TAG, "Stop Logging");
+                stopLogging();
+                mLoggingActive = false;
+                progressBar.setVisibility(View.GONE);
+            } else {
+                Log.i(TAG, "System is not Logging");
+            }
+        }
+    };
+
+    private View.OnClickListener sensorSettingsClick = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            Log.i(TAG, "Sensor Settings");
+        }
+    };
 }
