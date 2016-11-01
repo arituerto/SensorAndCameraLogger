@@ -1,5 +1,6 @@
 package arituerto.sensorandcameralogger;
 
+import android.content.Context;
 import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -32,6 +33,9 @@ import java.util.Map;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
+    // TODO: Save configuration for next runs.
+    // TODO: Select the sensors delay (Now: SensorManager.SENSOR_DELAY_FASTEST)
+
     private static final String TAG = "MainActivity:: ";
 
     static final int SENSORS_SETTINGS_REQUEST = 1;
@@ -46,10 +50,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     // CAMERA
     private CameraManager mCameraManager;
+    private String mCameraId;
     private CameraDevice mCameraDevice;
+    private CameraCharacteristics mCameraCharacteristics;
 
     // Logging data
     private boolean mLoggingActive;
+    private boolean mCameraLogging;
     private File loggingDir;
     private File imageDir;
     private String dataSetName;
@@ -64,9 +71,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // SENSORS
         mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
         List<Sensor> sensorList = mSensorManager.getSensorList(Sensor.TYPE_ALL);
-
+        mSensorLoggerMap = new HashMap<Sensor, Logger>();
         mNameSensorList = new ArrayList<String>();
         mSelectedSensorList = new boolean[sensorList.size()];
         mSensorMap = new HashMap<String, Sensor>();
@@ -78,21 +86,44 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             mSelectedSensorList[i] = true;
         }
 
-        mSensorLoggerMap = new HashMap<Sensor, Logger>();
+        // CAMERA
+        mCameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+        String[] cameraIds;
+        try{
+            cameraIds = mCameraManager.getCameraIdList();
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+            cameraIds = null;
+        }
+        if (cameraIds == null) {
+            Log.i(TAG, "Camera not available");
+            mCameraLogging = false;
+        } else {
+            mCameraLogging = true;
+            for (int iCamera = 0; iCamera < cameraIds.length; iCamera++) {
+                try {
+                    mCameraCharacteristics = mCameraManager.getCameraCharacteristics(cameraIds[iCamera]);
+                    if (mCameraCharacteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT) {
+                        mCameraId = cameraIds[iCamera];
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
 
+        //VISUAL
         progressBar = (ProgressBar) findViewById(R.id.progressBar);
         progressBar.setVisibility(View.GONE);
 
-//        startSensorListeners();
-
-        mCameraManager = (CameraManager)getSystemService(CAMERA_SERVICE);
-
+        final Button sensorSettingsButton = (Button) findViewById(R.id.buttonSensorSettings);
+        sensorSettingsButton.setOnClickListener(sensorSettingsClick);
+        final Button cameraSettingsButton = (Button) findViewById(R.id.buttonCameraSettings);
+        cameraSettingsButton.setOnClickListener(cameraSettingsClick);
         final Button startButton = (Button) findViewById(R.id.buttonStartLogging);
         startButton.setOnClickListener(startClick);
         final Button stopButton = (Button) findViewById(R.id.buttonStopLogging);
         stopButton.setOnClickListener(stopClick);
-        final Button sensorSettingsButton = (Button) findViewById(R.id.buttonSensorSettings);
-        sensorSettingsButton.setOnClickListener(sensorSettingsClick);
     }
 
     @Override
@@ -142,15 +173,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         try {
             loggingDir.mkdirs();
-        } catch (Exception e) {
-            Log.i(TAG, e.getMessage());
+        } catch (SecurityException e) {
+            e.printStackTrace();
         }
 
         imageDir = new File(loggingDir.getPath() + "/images");
         try {
             imageDir.mkdirs();
-        } catch (Exception e) {
-            Log.i(TAG, e.getMessage());
+        } catch (SecurityException e) {
+            e.printStackTrace();
         }
 
         String loggerFileName;
@@ -245,6 +276,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         @Override
         public void onClick(View v) {
             Log.i(TAG, "Sensor Settings");
+            Intent intent = new Intent(MainActivity.this, SensorSettingsActivity.class);
+            Bundle bundle = new Bundle();
+            bundle.putStringArrayList("allSensors", mNameSensorList);
+            bundle.putBooleanArray("selectedSensors", mSelectedSensorList);
+            intent.putExtras(bundle);
+            startActivityForResult(intent, SENSORS_SETTINGS_REQUEST);
+        }
+    };
+
+    private View.OnClickListener cameraSettingsClick = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            Log.i(TAG, "Camera Settings");
             Intent intent = new Intent(MainActivity.this, SensorSettingsActivity.class);
             Bundle bundle = new Bundle();
             bundle.putStringArrayList("allSensors", mNameSensorList);

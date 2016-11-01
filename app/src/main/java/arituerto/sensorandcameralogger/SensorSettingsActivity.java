@@ -1,8 +1,6 @@
 package arituerto.sensorandcameralogger;
 
 import android.content.Intent;
-import android.hardware.Sensor;
-import android.hardware.SensorManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -67,7 +65,7 @@ public class SensorSettingsActivity extends AppCompatActivity {
             linearLayout.addView(checkBox);
         }
 
-        final Button okButton = (Button) findViewById(R.id.buttonOK);
+        final Button okButton = (Button) findViewById(R.id.okButton);
         okButton.setOnClickListener(okClick);
     }
 
