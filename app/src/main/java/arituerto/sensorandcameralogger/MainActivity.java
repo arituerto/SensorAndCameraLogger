@@ -34,11 +34,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private static final String TAG = "MainActivity:: ";
 
+    static final int SENSORS_SETTINGS_REQUEST = 1;
+    static final int CAMERA_SETTINGS_REQUEST = 2;
+
     // SENSORS
     private SensorManager mSensorManager;
     private Map<String, Sensor> mSensorMap;
-    private ArrayList<String> mAllSensorList;
-    private ArrayList<String> mSelectedSensorList;
+    private ArrayList<String> mNameSensorList;
+    private boolean[] mSelectedSensorList;
     private Map<Sensor, Logger> mSensorLoggerMap;
 
     // CAMERA
@@ -63,14 +66,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
         List<Sensor> sensorList = mSensorManager.getSensorList(Sensor.TYPE_ALL);
-        mAllSensorList = new ArrayList<String>();
+
+        mNameSensorList = new ArrayList<String>();
+        mSelectedSensorList = new boolean[sensorList.size()];
         mSensorMap = new HashMap<String, Sensor>();
-        for (Sensor iSensor : sensorList) {
+        for (int i = 0; i < sensorList.size(); i++) {
+            Sensor iSensor = sensorList.get(i);
             String sensorString = iSensor.getName() + "\n" + iSensor.getStringType();
             mSensorMap.put(sensorString, iSensor);
-            mAllSensorList.add(sensorString);
+            mNameSensorList.add(sensorString);
+            mSelectedSensorList[i] = true;
         }
-        mSelectedSensorList = new ArrayList<String>(mAllSensorList);
 
         mSensorLoggerMap = new HashMap<Sensor, Logger>();
 
@@ -89,11 +95,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         sensorSettingsButton.setOnClickListener(sensorSettingsClick);
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    if (requestCode == SENSORS_SETTINGS_REQUEST) {
+        if (resultCode == RESULT_OK) {
+            Log.i(TAG, "Sensor Settings Received");
+            Bundle bundle = data.getExtras();
+            mSelectedSensorList = bundle.getBooleanArray("selectedSensors");
+        }
+    }
+
+    }
+
     private void startSensorListeners() {
-        for (String iSensorString : mSelectedSensorList) {
-            mSensorManager.registerListener(this,
-                    mSensorMap.get(iSensorString),
-                    SensorManager.SENSOR_DELAY_FASTEST);
+        for (int iSensor = 0; iSensor < mSelectedSensorList.length; iSensor++) {
+            if (mSelectedSensorList[iSensor]) {
+                mSensorManager.registerListener(this,
+                        mSensorMap.get(mNameSensorList.get(iSensor)),
+                        SensorManager.SENSOR_DELAY_FASTEST);
+            }
         }
         Log.i(TAG, "Sensor Listeners ON");
     }
@@ -119,6 +139,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 "_" + Build.MANUFACTURER +
                 "_" + Build.MODEL +
                 "_" + dataSetName);
+
         try {
             loggingDir.mkdirs();
         } catch (Exception e) {
@@ -133,26 +154,28 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
 
         String loggerFileName;
-        for (String iStringSensor : mSelectedSensorList) {
+        for (int iSensor = 0; iSensor < mSelectedSensorList.length; iSensor++ ) {
+            if (mSelectedSensorList[iSensor]) {
 
-            Sensor iSensor = mSensorMap.get(iStringSensor);
+                Sensor sensor = mSensorMap.get(mNameSensorList.get(iSensor));
 
-            String sensorTypeString = iSensor.getStringType();
-            String[] parts = sensorTypeString.split("\\.");
-            loggerFileName = loggingDir.getPath() + "/sensor_" + parts[parts.length - 1].toUpperCase() + "_log.csv";
+                String sensorTypeString = sensor.getStringType();
+                String[] parts = sensorTypeString.split("\\.");
+                loggerFileName = loggingDir.getPath() + "/sensor_" + parts[parts.length - 1].toUpperCase() + "_log.csv";
 
-            // First line: Data description
-            String csvFormat = "// SYSTEM_TIME [ns], EVENT_TIMESTAMP [ns], EVENT_" + sensorTypeString + "_VALUES";
-            try {
-                Logger logger = new Logger(loggerFileName);
-                mSensorLoggerMap.put(iSensor, logger);
+                // First line: Data description
+                String csvFormat = "// SYSTEM_TIME [ns], EVENT_TIMESTAMP [ns], EVENT_" + sensorTypeString + "_VALUES";
                 try {
-                    logger.log(csvFormat);
-                } catch (IOException e) {
+                    Logger logger = new Logger(loggerFileName);
+                    mSensorLoggerMap.put(sensor, logger);
+                    try {
+                        logger.log(csvFormat);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
             }
         }
 
@@ -193,7 +216,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private View.OnClickListener startClick = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-
             if (!mLoggingActive) {
                 Log.i(TAG, "Start Logging");
                 startLogging();
@@ -225,9 +247,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             Log.i(TAG, "Sensor Settings");
             Intent intent = new Intent(MainActivity.this, SensorSettingsActivity.class);
             Bundle bundle = new Bundle();
-            bundle.putStringArrayList("allSensors", mAllSensorList);
+            bundle.putStringArrayList("allSensors", mNameSensorList);
+            bundle.putBooleanArray("selectedSensors", mSelectedSensorList);
             intent.putExtras(bundle);
-            startActivity(intent);
+            startActivityForResult(intent, SENSORS_SETTINGS_REQUEST);
         }
     };
 }

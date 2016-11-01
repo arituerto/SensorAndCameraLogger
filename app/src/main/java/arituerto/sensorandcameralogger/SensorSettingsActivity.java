@@ -12,9 +12,6 @@ import android.widget.CheckBox;
 import android.widget.LinearLayout;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class SensorSettingsActivity extends AppCompatActivity {
 
@@ -23,7 +20,8 @@ public class SensorSettingsActivity extends AppCompatActivity {
     // TODO: Keep track of checked/unchecked sensors. Best class??
 
     // SENSORS
-    private ArrayList<String> mAllSensors;
+    private ArrayList<String> mNameSensorList;
+    private boolean[] mSelectedSensorList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,26 +31,36 @@ public class SensorSettingsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sensor_settings);
 
-        mAllSensors = new ArrayList<String>();
+        mNameSensorList = new ArrayList<String>();
+
         Bundle bundle = this.getIntent().getExtras();
         if(bundle != null) {
-            mAllSensors = bundle.getParcelable("allSensors");
+            mNameSensorList = bundle.getStringArrayList("allSensors");
+            mSelectedSensorList = bundle.getBooleanArray("selectedSensors");
         }
         LinearLayout linearLayout = (LinearLayout) findViewById(R.id.sensorLinearLayout);
-        for (String iSensor : mAllSensors) {
+        for (int i = 0; i < mNameSensorList.size(); i++) {
+            String iSensor = mNameSensorList.get(i);
             CheckBox checkBox = new CheckBox(this);
             checkBox.setText(iSensor);
-            checkBox.setChecked(true);
-            checkBox.setTag(iSensor);
+            checkBox.setId(i);
+            if (mSelectedSensorList[i]) {
+                checkBox.setChecked(true);
+            } else {
+                checkBox.setChecked(false);
+            }
             checkBox.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
                     Boolean checked = ((CheckBox) view).isChecked();
-                    String checkBoxTag = view.getTag().toString();
+                    int checkBoxId = view.getId();
+                    String SensorName = mNameSensorList.get(checkBoxId);
                     if (checked) {
-                        Log.i(TAG, checkBoxTag + " CHECKED");
+                        Log.i(TAG, SensorName + " CHECKED");
+                        mSelectedSensorList[checkBoxId] = true;
                     } else {
-                        Log.i(TAG, checkBoxTag + " UNCHECKED");
+                        Log.i(TAG, SensorName + " UNCHECKED");
+                        mSelectedSensorList[checkBoxId] = false;
                     }
                 }
             });
@@ -67,6 +75,11 @@ public class SensorSettingsActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
             Log.i(TAG, "Sensor Settings OK");
+            Intent returnIntent = new Intent();
+            Bundle bundle = new Bundle();
+            bundle.putBooleanArray("selectedSensors", mSelectedSensorList);
+            returnIntent.putExtras(bundle);
+            setResult(RESULT_OK, returnIntent);
             finish();
         }
     };
