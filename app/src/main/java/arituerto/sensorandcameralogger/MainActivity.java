@@ -1,5 +1,6 @@
 package arituerto.sensorandcameralogger;
 
+import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -18,7 +19,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
-import android.widget.TextView;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -36,8 +36,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     // SENSORS
     private SensorManager mSensorManager;
-    private List<Sensor> mSensorList;
-    private List<Sensor> mSelectedSensorList;
+    private Map<String, Sensor> mSensorMap;
+    private ArrayList<String> mAllSensorList;
+    private ArrayList<String> mSelectedSensorList;
     private Map<Sensor, Logger> mSensorLoggerMap;
 
     // CAMERA
@@ -61,14 +62,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         setContentView(R.layout.activity_main);
 
         mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
-        mSensorList = mSensorManager.getSensorList(Sensor.TYPE_ALL);
-        mSelectedSensorList = new ArrayList<Sensor>(mSensorList);
+        List<Sensor> sensorList = mSensorManager.getSensorList(Sensor.TYPE_ALL);
+        mAllSensorList = new ArrayList<String>();
+        mSensorMap = new HashMap<String, Sensor>();
+        for (Sensor iSensor : sensorList) {
+            String sensorString = iSensor.getName() + "\n" + iSensor.getStringType();
+            mSensorMap.put(sensorString, iSensor);
+            mAllSensorList.add(sensorString);
+        }
+        mSelectedSensorList = new ArrayList<String>(mAllSensorList);
+
         mSensorLoggerMap = new HashMap<Sensor, Logger>();
 
         progressBar = (ProgressBar) findViewById(R.id.progressBar);
         progressBar.setVisibility(View.GONE);
 
-        startSensorListeners(mSelectedSensorList);
+//        startSensorListeners();
 
         mCameraManager = (CameraManager)getSystemService(CAMERA_SERVICE);
 
@@ -80,24 +89,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         sensorSettingsButton.setOnClickListener(sensorSettingsClick);
     }
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        stopSensorListeners();
-
-    }
-
-    private void startSensorListeners(List<Sensor> sensorList) {
-        for (Sensor iSensor : sensorList) {
-            mSensorManager.registerListener(this,iSensor,SensorManager.SENSOR_DELAY_FASTEST);
+    private void startSensorListeners() {
+        for (String iSensorString : mSelectedSensorList) {
+            mSensorManager.registerListener(this,
+                    mSensorMap.get(iSensorString),
+                    SensorManager.SENSOR_DELAY_FASTEST);
         }
+        Log.i(TAG, "Sensor Listeners ON");
     }
 
     private void stopSensorListeners() {
         mSensorManager.unregisterListener(this);
+        Log.i(TAG, "Sensor Listeners OFF");
     }
 
     private void startLogging() {
+
+        startSensorListeners();
 
         EditText textEntry = (EditText) findViewById(R.id.inputDataSetName);
         dataSetName = textEntry.getText().toString();
@@ -125,7 +133,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
 
         String loggerFileName;
-        for (Sensor iSensor : mSensorList) {
+        for (String iStringSensor : mSelectedSensorList) {
+
+            Sensor iSensor = mSensorMap.get(iStringSensor);
 
             String sensorTypeString = iSensor.getStringType();
             String[] parts = sensorTypeString.split("\\.");
@@ -157,6 +167,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         }
         mSensorLoggerMap.clear();
+        stopSensorListeners();
     }
 
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
@@ -212,6 +223,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         @Override
         public void onClick(View v) {
             Log.i(TAG, "Sensor Settings");
+            Intent intent = new Intent(MainActivity.this, SensorSettingsActivity.class);
+            Bundle bundle = new Bundle();
+            bundle.putStringArrayList("allSensors", mAllSensorList);
+            intent.putExtras(bundle);
+            startActivity(intent);
         }
     };
 }
