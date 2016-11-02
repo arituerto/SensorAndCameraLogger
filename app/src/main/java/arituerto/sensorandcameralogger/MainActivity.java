@@ -71,8 +71,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     // CAMERA
     private String cameraId;
     protected CameraDevice cameraDevice;
-    protected CameraCaptureSession cameraCaptureSessions;
-    protected CaptureRequest captureRequest;
     protected CaptureRequest.Builder captureRequestBuilder;
     private Size imageDimension;
     private ImageReader imageReader;
@@ -367,15 +365,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 height = jpegSizes[0].getHeight();
             }
 
-            ImageReader reader = ImageReader.newInstance(width, height, ImageFormat.JPEG, 1);
+            imageReader = ImageReader.newInstance(width, height, ImageFormat.JPEG, 1);
             List<Surface> outputSurfaces = new ArrayList<Surface>();
-            outputSurfaces.add(reader.getSurface());
-
-            captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-
-            captureRequestBuilder.addTarget(reader.getSurface());
-
-            captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
+            outputSurfaces.add(imageReader.getSurface());
 
             ImageReader.OnImageAvailableListener readerListener = new ImageReader.OnImageAvailableListener() {
                 @Override
@@ -384,7 +376,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 }
             };
 
-            reader.setOnImageAvailableListener(readerListener, mBackgroundHandler);
+            captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+
+            captureRequestBuilder.addTarget(imageReader.getSurface());
+
+            captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
+
+            imageReader.setOnImageAvailableListener(readerListener, mBackgroundHandler);
 
             cameraDevice.createCaptureSession(outputSurfaces, captureSessionStateCallback, mBackgroundHandler);
 
