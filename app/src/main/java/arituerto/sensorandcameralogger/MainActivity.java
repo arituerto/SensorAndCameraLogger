@@ -55,23 +55,37 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     // TODO: Save configuration for next runs.
     // TODO: Select the sensors delay (Now: SensorManager.SENSOR_DELAY_FASTEST)
+    // TODO: Add GPS logging
 
     private static final String TAG = "MainActivity:: ";
 
     static final int SENSORS_SETTINGS_REQUEST = 1;
     static final int CAMERA_SETTINGS_REQUEST = 2;
+    static final int[] SENSOR_TYPES = new int[] {
+                    Sensor.TYPE_ACCELEROMETER,
+                    Sensor.TYPE_GYROSCOPE,
+                    Sensor.TYPE_MAGNETIC_FIELD,
+                    Sensor.TYPE_ROTATION_VECTOR,
+                    Sensor.TYPE_ROTATION_VECTOR,
+                    Sensor.TYPE_GAME_ROTATION_VECTOR,
+                    Sensor.TYPE_GRAVITY,
+                    Sensor.TYPE_LINEAR_ACCELERATION,
+                    Sensor.TYPE_PRESSURE,
+                    Sensor.TYPE_STEP_COUNTER,
+                    Sensor.TYPE_STEP_DETECTOR};
 
     // SENSORS
     private SensorManager mSensorManager;
     private Map<String, Sensor> mSensorMap;
     private ArrayList<String> mNameSensorList;
     private boolean[] mSelectedSensorList;
+    private int sensorDelay = SensorManager.SENSOR_DELAY_NORMAL;
     private Map<Sensor, Logger> mSensorLoggerMap;
 
     // CAMERA
     private String cameraId;
-    protected CameraDevice cameraDevice;
-    protected CaptureRequest.Builder captureRequestBuilder;
+    private CameraDevice cameraDevice;
+    private CaptureRequest.Builder captureRequestBuilder;
     private Size imageDimension;
     private ImageReader imageReader;
     private Handler mBackgroundHandler;
@@ -96,7 +110,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         // SENSORS
         mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
-        List<Sensor> sensorList = mSensorManager.getSensorList(Sensor.TYPE_ALL);
+        List<Sensor> sensorList = new ArrayList<Sensor>();
+        for (int iSensorType = 0; iSensorType < SENSOR_TYPES.length; iSensorType++) {
+            List<Sensor> auxList = new ArrayList<>();
+            auxList = mSensorManager.getSensorList(SENSOR_TYPES[iSensorType]);
+            for (Sensor iSensor : auxList) {
+                sensorList.add(iSensor);
+            }
+        }
         mSensorLoggerMap = new HashMap<Sensor, Logger>();
         mNameSensorList = new ArrayList<String>();
         mSelectedSensorList = new boolean[sensorList.size()];
@@ -144,6 +165,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             Log.i(TAG, "Sensor Settings Received");
             Bundle bundle = data.getExtras();
             mSelectedSensorList = bundle.getBooleanArray("selectedSensors");
+            sensorDelay = bundle.getInt("sensorDelay");
         }
     }
 
@@ -155,7 +177,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             if (mSelectedSensorList[iSensor]) {
                 mSensorManager.registerListener(this,
                         mSensorMap.get(mNameSensorList.get(iSensor)),
-                        SensorManager.SENSOR_DELAY_FASTEST);
+                        sensorDelay);
             }
         }
         Log.i(TAG, "Sensor Listeners ON");

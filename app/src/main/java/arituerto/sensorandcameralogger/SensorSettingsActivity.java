@@ -1,15 +1,20 @@
 package arituerto.sensorandcameralogger;
 
 import android.content.Intent;
+import android.hardware.SensorManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class SensorSettingsActivity extends AppCompatActivity {
 
@@ -20,6 +25,7 @@ public class SensorSettingsActivity extends AppCompatActivity {
     // SENSORS
     private ArrayList<String> mNameSensorList;
     private boolean[] mSelectedSensorList;
+    private int sensorDelay = SensorManager.SENSOR_DELAY_NORMAL;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,6 +42,29 @@ public class SensorSettingsActivity extends AppCompatActivity {
             mNameSensorList = bundle.getStringArrayList("allSensors");
             mSelectedSensorList = bundle.getBooleanArray("selectedSensors");
         }
+
+        final int[] sensorDelayArray = new int[] {
+                SensorManager.SENSOR_DELAY_UI,
+                SensorManager.SENSOR_DELAY_NORMAL,
+                SensorManager.SENSOR_DELAY_GAME,
+                SensorManager.SENSOR_DELAY_FASTEST};
+        Spinner spinner = (Spinner) findViewById(R.id.spinnerSensorDelay);
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, R.layout.support_simple_spinner_dropdown_item);
+        adapter.add("UI");
+        adapter.add("NORMAL");
+        adapter.add("GAME");
+        adapter.add("FASTEST");
+        spinner.setAdapter(adapter);
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                sensorDelay = sensorDelayArray[i];
+            }
+
+            public void onNothingSelected(AdapterView<?> adapterView) {
+                sensorDelay = SensorManager.SENSOR_DELAY_NORMAL;
+            }
+        });
+
         LinearLayout linearLayout = (LinearLayout) findViewById(R.id.sensorLinearLayout);
         for (int i = 0; i < mNameSensorList.size(); i++) {
             String iSensor = mNameSensorList.get(i);
@@ -76,6 +105,7 @@ public class SensorSettingsActivity extends AppCompatActivity {
             Intent returnIntent = new Intent();
             Bundle bundle = new Bundle();
             bundle.putBooleanArray("selectedSensors", mSelectedSensorList);
+            bundle.putInt("sensorDelay", sensorDelay);
             returnIntent.putExtras(bundle);
             setResult(RESULT_OK, returnIntent);
             finish();
