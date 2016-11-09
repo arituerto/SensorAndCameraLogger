@@ -113,8 +113,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Handler mHandler;
 
     // LOGGING
-    boolean loggingActive = false;
-    boolean cameraActive = false;
+    boolean sensorLoggingActive = false;
+    boolean cameraLoggingActive = false;
     File loggingDir;
     File imageDir;
     String dataSetName;
@@ -233,16 +233,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             e.printStackTrace();
         }
 
-//        // CREATE IMAGES DIRECTORY
-//        imageDir = new File(loggingDir.getPath() + "/images");
-//        if (cameraActive) {
-//            try {
-//                imageDir.mkdirs();
-//            } catch (SecurityException e) {
-//                e.printStackTrace();
-//            }
-//        }
-
         // CREATE SENSOR LOGGERS
         String loggerFileName;
         for (int iSensor = 0; iSensor < mSelectedSensorList.length; iSensor++) {
@@ -289,7 +279,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     public void onSensorChanged(SensorEvent event) {
-        if (loggingActive) {
+        if (sensorLoggingActive) {
             Sensor key = event.sensor;
             Logger sensorLogger = mSensorLoggerMap.get(key);
             String eventData = SystemClock.elapsedRealtimeNanos() + "," + event.timestamp;
@@ -351,6 +341,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private void setupSurfaces() {
 
+        // PREVIEW SURFACE
         TextureView textureView = (TextureView) findViewById(R.id.textureView);
         textureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
             @Override
@@ -372,6 +363,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             public void onSurfaceTextureUpdated(SurfaceTexture surface) {}
         });
 
+        // CREATE IMAGE READER
         mImgReader = ImageReader.newInstance(mImageSize.getWidth(), mImageSize.getHeight(), ImageFormat.JPEG, 1);
         mImgReader.setOnImageAvailableListener(mOnImageAvailableListener, mHandler);
         mReaderSurface = mImgReader.getSurface();
@@ -425,7 +417,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private void setupCaptureSession() throws CameraAccessException {
         mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
         mPreviewRequestBuilder.addTarget(mPreviewSurface);
-        mCameraDevice.createCaptureSession(Arrays.asList(mPreviewSurface), new CameraCaptureSession.StateCallback() {
+        mPreviewRequestBuilder.addTarget(mReaderSurface);
+        mSurfaceList.add(mPreviewSurface);
+        mSurfaceList.add(mReaderSurface);
+        mCameraDevice.createCaptureSession(mSurfaceList, new CameraCaptureSession.StateCallback() {
                     @Override
                     public void onConfigured(CameraCaptureSession cameraCaptureSession) {
                         mCaptureSession = cameraCaptureSession;
@@ -442,18 +437,40 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 }, null);
     }
 
+    private void startImageLogging() {
+
+        // CREATE IMAGES DIRECTORY
+        imageDir = new File(loggingDir.getPath() + "/images_" + mImageSize.getWidth() + "x" + mImageSize.getHeight());
+        Log.i("startImageLogging", imageDir + " created");
+        if (cameraLoggingActive) {
+            try {
+                imageDir.mkdirs();
+            } catch (SecurityException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void stopImageLogging() {
+
+    }
+
     private ImageReader.OnImageAvailableListener mOnImageAvailableListener = new ImageReader.OnImageAvailableListener() {
         @Override
         public void onImageAvailable(ImageReader reader) {
             Image image = null;
-            try{
-                image = reader.acquireNextImage();
-                Log.i("ImageReader", "Image read " + image.getWidth() + "x" + image.getHeight());
-                Log.i("ImageReader", "Capture completed at " + image.getTimestamp());
-            }catch(IllegalStateException e){
-                e.printStackTrace();
-                Log.e("ImageReader", "No more buffers available, skipping frame");
-            }
+                try {
+                    image = reader.acquireNextImage();
+                    if (sensorLoggingActive) {
+                        String imgName = imageDir.getPath() + "/img_" + image.getTimestamp() + ".jpg";
+                        Log.i("ImageReader", "Image name " + imgName);
+                    }
+                    Log.i("ImageReader", "Image read " + image.getWidth() + "x" + image.getHeight());
+                    Log.i("ImageReader", "Capture completed at " + image.getTimestamp());
+                } catch(IllegalStateException e){
+                        e.printStackTrace();
+                        Log.e("ImageReader", "No more buffers available, skipping frame");
+                    }
             image.close();
         }
     };
@@ -490,10 +507,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private View.OnClickListener startClick = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            if (!loggingActive) {
+            if (!sensorLoggingActive) {
                 Log.i(TAG, "Start Logging");
                 startSensorsLogging();
-                loggingActive = true;
+                startImageLogging();
+                sensorLoggingActive = true;
                 mProgressBar.setVisibility(View.VISIBLE);
             } else {
                 Log.i(TAG, "System is already Logging");
@@ -504,10 +522,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private View.OnClickListener stopClick = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            if (loggingActive) {
+            if (sensorLoggingActive) {
                 Log.i(TAG, "Stop Logging");
                 stopSensorsLogging();
-                loggingActive = false;
+                stopImageLogging();
+                sensorLoggingActive = false;
                 mProgressBar.setVisibility(View.GONE);
             } else {
                 Log.i(TAG, "System is not Logging");
