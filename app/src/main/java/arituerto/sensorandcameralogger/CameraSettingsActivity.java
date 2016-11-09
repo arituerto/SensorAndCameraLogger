@@ -12,7 +12,7 @@ import android.widget.Button;
 
 public class CameraSettingsActivity extends AppCompatActivity {
 
-    private static final String TAG = "CameraSettingsActivity";
+    private static final String TAG = "CameraSettings";
 
     private CameraManager mCameraManager;
     private String mCameraId;
@@ -25,7 +25,7 @@ public class CameraSettingsActivity extends AppCompatActivity {
         // TODO: Save LENS_POSE_ROTATION and LENS_POSE_TRANSLATION
         // TODO: Check time reference UNKNOWN / REALTIME
 
-        Log.i(TAG, " onCreate");
+        Log.i(TAG, "onCreate");
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera_settings);
@@ -42,7 +42,7 @@ public class CameraSettingsActivity extends AppCompatActivity {
     private View.OnClickListener okClick = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            Log.i(TAG, "Sensor Settings OK");
+            Log.i(TAG, "Camera Settings OK");
             Intent returnIntent = new Intent();
             Bundle bundle = new Bundle();
             returnIntent.putExtras(bundle);

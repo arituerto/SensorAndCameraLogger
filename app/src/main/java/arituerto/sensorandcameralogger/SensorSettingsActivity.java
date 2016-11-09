@@ -18,7 +18,7 @@ import java.util.List;
 
 public class SensorSettingsActivity extends AppCompatActivity {
 
-    private static final String TAG = "SensorSettingsActivity";
+    private static final String TAG = "SensorSettings";
 
     // TODO: Keep track of checked/unchecked sensors. Best class??
 
@@ -30,7 +30,7 @@ public class SensorSettingsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
-        Log.i(TAG, " onCreate");
+        Log.i(TAG, "onCreate");
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sensor_settings);
@@ -48,6 +48,11 @@ public class SensorSettingsActivity extends AppCompatActivity {
                 SensorManager.SENSOR_DELAY_NORMAL,
                 SensorManager.SENSOR_DELAY_GAME,
                 SensorManager.SENSOR_DELAY_FASTEST};
+        final String[] sensorDelayNameArray = new String[] {
+                "SENSOR_DELAY_UI",
+                "SENSOR_DELAY_NORMAL",
+                "SENSOR_DELAY_GAME",
+                "SENSOR_DELAY_FASTEST"};
         Spinner spinner = (Spinner) findViewById(R.id.spinnerSensorDelay);
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, R.layout.support_simple_spinner_dropdown_item);
         adapter.add("UI");
@@ -58,6 +63,7 @@ public class SensorSettingsActivity extends AppCompatActivity {
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
                 sensorDelay = sensorDelayArray[i];
+                Log.i(TAG, "Sensor delay: " + sensorDelayNameArray[i]);
             }
 
             public void onNothingSelected(AdapterView<?> adapterView) {

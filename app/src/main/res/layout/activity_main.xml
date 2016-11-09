@@ -58,8 +58,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@+id/inputDataSetName"
-        android:layout_centerHorizontal="true"
-        android:id="@+id/buttonSensorSettings" />
+        android:id="@+id/buttonSensorSettings"
+        android:layout_alignEnd="@+id/buttonCameraSettings"
+        android:layout_alignStart="@+id/buttonCameraSettings" />
 
     <Button
         android:text="Camera Settings"
@@ -68,5 +69,12 @@
         android:layout_below="@+id/buttonSensorSettings"
         android:layout_centerHorizontal="true"
         android:id="@+id/buttonCameraSettings" />
+
+    <TextureView
+        android:id="@+id/textureView"
+        android:layout_above="@+id/buttonStopLogging"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/buttonCameraSettings" />
 
 </RelativeLayout>
