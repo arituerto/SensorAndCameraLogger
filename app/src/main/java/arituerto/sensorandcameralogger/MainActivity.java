@@ -18,7 +18,6 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
-import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
@@ -45,7 +44,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.Buffer;
-import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -186,6 +184,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 Bundle bundle = data.getExtras();
                 mSelectedSensorList = bundle.getBooleanArray("selectedSensors");
                 sensorDelay = bundle.getInt("sensorDelay");
+                setupSurfaces();
             }
         } else if (requestCode == CAMERA_SETTINGS_REQUEST) {
             if (resultCode == RESULT_OK) {
@@ -195,8 +194,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 int SelectedFocusMode = bundle.getInt("selectedFocus");
                 setCameraImageSize(mJpegSizeList[SelectedJpegSize]);
                 setCameraAutoFocus(mFocusModeList[SelectedFocusMode]);
-                closeCamera();
-                mSurfaceList.clear();
                 mImgReader = ImageReader.newInstance(mImageSize.getWidth(), mImageSize.getHeight(), ImageFormat.JPEG, 10);
                 mImgReader.setOnImageAvailableListener(mOnImageAvailableListener, mHandler);
                 mReaderSurface = mImgReader.getSurface();
@@ -206,6 +203,28 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         }
 
+    }
+
+    // SESSION DESCRIPTION
+    private void writeSessionDescription() {
+        String sessionDescriptionName = loggingDir.getPath() + "/sessionDescription.txt";
+        FileOutputStream outputStream;
+        try {
+            outputStream = new FileOutputStream(sessionDescriptionName);
+            String string;
+            string = "DATA_SET_NAME                 " + dataSetName + System.lineSeparator();
+            outputStream.write(string.getBytes());
+            string = "DATA_SET_FOLDER               " + loggingDir + System.lineSeparator();
+            outputStream.write(string.getBytes());
+            string = "CAMERA  RESOLUTION            " + mImageSize.getWidth() + "x" + mImageSize.getHeight() + System.lineSeparator();
+            outputStream.write(string.getBytes());
+            string = "CAMERA  AF MODE               " + mNameFocusModeList.get(mFocusMode) + System.lineSeparator();
+            outputStream.write(string.getBytes());
+
+            outputStream.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     // SENSORS FUNCTIONS
@@ -312,6 +331,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
         mSensorLoggerMap.clear();
         stopSensorListeners();
+
+        writeSessionDescription();
     }
 
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
@@ -490,6 +511,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mCameraRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, mFocusMode);
         mCameraRequestBuilder.addTarget(mPreviewSurface);
         mCameraRequestBuilder.addTarget(mReaderSurface);
+        mSurfaceList.clear();
         mSurfaceList.add(mPreviewSurface);
         mSurfaceList.add(mReaderSurface);
         mCameraDevice.createCaptureSession(mSurfaceList, new CameraCaptureSession.StateCallback() {
@@ -623,6 +645,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             bundle.putStringArrayList("allSensors", mNameSensorList);
             bundle.putBooleanArray("selectedSensors", mSelectedSensorList);
             intent.putExtras(bundle);
+            closeCamera();
             startActivityForResult(intent, SENSORS_SETTINGS_REQUEST);
         }
     };
@@ -636,6 +659,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             bundle.putStringArrayList("sizeName", mNameJpegSizeList);
             bundle.putStringArrayList("focusName", mNameFocusModeList);
             intent.putExtras(bundle);
+            closeCamera();
             startActivityForResult(intent, CAMERA_SETTINGS_REQUEST);
         }
     };
