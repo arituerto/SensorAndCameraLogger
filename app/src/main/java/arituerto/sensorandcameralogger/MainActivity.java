@@ -4,7 +4,9 @@ import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
+import android.graphics.PixelFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -16,6 +18,7 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
@@ -39,7 +42,9 @@ import android.widget.ProgressBar;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -98,6 +103,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private HandlerThread mHandlerThread;
     private Handler mHandler;
 
+    private Logger mCameraLogger;
+
     //PREVIEW SURFACE
     private Surface mPreviewSurface;
     private Surface mReaderSurface;
@@ -105,9 +112,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     // LOGGING
     boolean sensorLoggingActive = false;
-    File loggingDir;
-    File imageDir;
-    String dataSetName;
+    private File loggingDir;
+    private File imageDir;
+    private String dataSetName;
 
     private ProgressBar mProgressBar;
 
@@ -150,7 +157,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
 
         // CAMERA
-
         final Button sensorSettingsButton = (Button) findViewById(R.id.buttonSensorSettings);
         sensorSettingsButton.setOnClickListener(sensorSettingsClick);
         final Button cameraSettingsButton = (Button) findViewById(R.id.buttonCameraSettings);
@@ -188,16 +194,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 int SelectedFocusMode = bundle.getInt("selectedFocus");
                 setCameraImageSize(mJpegSizeList[SelectedJpegSize]);
                 setCameraAutoFocus(mFocusModeList[SelectedFocusMode]);
-                mCaptureSession.close();
-                mImgReader.close();
+                closeCamera();
+                mSurfaceList.clear();
                 mImgReader = ImageReader.newInstance(mImageSize.getWidth(), mImageSize.getHeight(), ImageFormat.JPEG, 10);
                 mImgReader.setOnImageAvailableListener(mOnImageAvailableListener, mHandler);
                 mReaderSurface = mImgReader.getSurface();
-                try {
-                    setupCaptureSession();
-                } catch (CameraAccessException e) {
-                    e.printStackTrace();
-                }
+                setupSurfaces();
                 // Get parameters, change parameters, close capture session, create new imagereader
                 // and relaunch setupCaptureSession if CameraDevice is not null (otherwise relaunch setup camera)
             }
@@ -253,6 +255,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             e.printStackTrace();
         }
 
+        // CREATE CAMERA LOGGER
+        // First line: Data description
+        try {
+            mCameraLogger = new Logger(loggingDir.getPath() + "/sensor_CAMERA_log.csv");
+            try {
+                mCameraLogger.log("// SYSTEM_TIME [ns], EVENT_TIMESTAMP [ns], IMG_NAME");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
         // CREATE SENSOR LOGGERS
         String loggerFileName;
         for (int iSensor = 0; iSensor < mSelectedSensorList.length; iSensor++) {
@@ -283,6 +298,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void stopLogging() {
+        try {
+            mCameraLogger.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         for (Map.Entry<Sensor, Logger> iSensorLogger : mSensorLoggerMap.entrySet()) {
             try {
                 iSensorLogger.getValue().close();
@@ -348,17 +368,24 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 String resolution = i.getWidth() + "x" + i.getHeight();
                 mNameJpegSizeList.add(resolution);
             }
-            setCameraImageSize(mJpegSizeList[0]);
+            setCameraImageSize(mJpegSizeList[mJpegSizeList.length-1]);
             mFocusModeList = cc.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
             mNameFocusModeList = new ArrayList<String>();
             for (int i = 0; i < mFocusModeList.length; i++) {
-                switch (mFocusModeList[i]) {
-                    case CaptureRequest.CONTROL_AF_MODE_OFF: mNameFocusModeList.add("OFF");
-                    case CaptureRequest.CONTROL_AF_MODE_AUTO: mNameFocusModeList.add("AUTO");
-                    case CaptureRequest.CONTROL_AF_MODE_MACRO: mNameFocusModeList.add("MACRO");
-                    case CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO: mNameFocusModeList.add("CONTINUOUS VIDEO");
-                    case CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE: mNameFocusModeList.add("CONTINUOUS PICTURE");
-                    case CaptureRequest.CONTROL_AF_MODE_EDOF: mNameFocusModeList.add("FIXED");
+                if (mFocusModeList[i] == CaptureRequest.CONTROL_AF_MODE_OFF) {
+                    mNameFocusModeList.add("OFF");
+                } else if(mFocusModeList[i] == CaptureRequest.CONTROL_AF_MODE_AUTO) {
+                    mNameFocusModeList.add("AUTO");
+                } else if(mFocusModeList[i] == CaptureRequest.CONTROL_AF_MODE_MACRO) {
+                    mNameFocusModeList.add("MACRO");
+                } else if(mFocusModeList[i] == CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO) {
+                    mNameFocusModeList.add("CONTINUOS VIDEO");
+                } else if(mFocusModeList[i] == CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE) {
+                    mNameFocusModeList.add("CONTINUOUS PICTURE");
+                } else if(mFocusModeList[i] == CaptureRequest.CONTROL_AF_MODE_EDOF) {
+                    mNameFocusModeList.add("EDOF");
+                } else {
+                    Log.i("AF MODES", "mode Unknown");
                 }
             }
             setCameraAutoFocus(mFocusModeList[0]);
@@ -380,7 +407,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private void setupSurfaces() {
 
         // IMAGE READER
-        mImgReader = ImageReader.newInstance(mImageSize.getWidth(), mImageSize.getHeight(), ImageFormat.JPEG, 10);
+        // TODO: CHECK FORMAT AVAILABLE FROM CAMERA
+        mImgReader = ImageReader.newInstance(mImageSize.getWidth(), mImageSize.getHeight(), PixelFormat.RGBA_8888, 1);
         mImgReader.setOnImageAvailableListener(mOnImageAvailableListener, mHandler);
         mReaderSurface = mImgReader.getSurface();
 
@@ -485,20 +513,29 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private ImageReader.OnImageAvailableListener mOnImageAvailableListener = new ImageReader.OnImageAvailableListener() {
         @Override
         public void onImageAvailable(ImageReader reader) {
-            Image image = null;
+            Image img = null;
             try {
-                image = reader.acquireNextImage();
-                if (sensorLoggingActive) {
-                    String imgName = imageDir.getPath() + "/img_" + image.getTimestamp() + ".jpg";
-                    Log.i("ImageReader", "Image name " + imgName);
-                    Log.i("ImageReader", "Image read " + image.getWidth() + "x" + image.getHeight());
-                    Log.i("ImageReader", "Capture completed at " + image.getTimestamp());
+                img = reader.acquireNextImage();
+                if (null != img) {
+                    if (sensorLoggingActive) {
+                        // CREATE NAMES
+                        String imgName = "img_" + img.getTimestamp() + ".jpg";
+                        String imgFileName = imageDir.getPath() + "/" + imgName;
+                        // LOG DATA
+                        String eventData = SystemClock.elapsedRealtimeNanos() + "," + img.getTimestamp() + "," + imgName;
+                        try {
+                            mCameraLogger.log(eventData);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        // TODO: SAVE IMAGE
+                    }
                 }
             } catch (IllegalStateException e) {
                 e.printStackTrace();
                 Log.e("ImageReader", "No more buffers available, skipping frame");
             }
-            image.close();
+            img.close();
         }
     };
 
@@ -528,8 +565,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private CameraCaptureSession.CaptureCallback mSessionCaptureCallback = new CameraCaptureSession.CaptureCallback() {
         @Override
-        public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
-        }
+        public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {}
     };
 
     // BUTTONS FUNCTIONS
