@@ -44,6 +44,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -247,7 +248,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
 
         // CREATE IMAGES DIRECTORY
-        // TODO: Add logger for images
         imageDir = new File(loggingDir.getPath() + "/images_" + mImageSize.getWidth() + "x" + mImageSize.getHeight());
         try {
             imageDir.mkdirs();
@@ -528,7 +528,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                        // TODO: SAVE IMAGE
+                        processImage(img, imgFileName);
                     }
                 }
             } catch (IllegalStateException e) {
@@ -538,6 +538,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             img.close();
         }
     };
+
+    private void processImage(Image image, String imgFileName) {
+        // TODO: SAVE IMAGE
+        Bitmap bitmap;
+        Image.Plane[] planes = image.getPlanes();
+        Buffer buffer = planes[0].getBuffer().rewind();
+        bitmap = Bitmap.createBitmap(image.getWidth(), image.getHeight(), Bitmap.Config.ARGB_8888);
+        bitmap.copyPixelsFromBuffer(buffer);
+        try {
+            FileOutputStream out = new FileOutputStream(imgFileName);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
+            out.flush();
+            out.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     private CameraDevice.StateCallback mCameraStateCallback = new CameraDevice.StateCallback() {
         @Override
