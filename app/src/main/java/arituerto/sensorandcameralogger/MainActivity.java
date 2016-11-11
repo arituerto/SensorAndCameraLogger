@@ -491,17 +491,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         if (null != mCaptureSession) {
             mCaptureSession.close();
-            mCaptureSession = null;
+            // mCaptureSession = null;
         }
 
         if (null != mCameraDevice) {
             mCameraDevice.close();
-            mCameraDevice = null;
+            // mCameraDevice = null;
         }
 
         if (null != mImgReader) {
             mImgReader.close();
-            mImgReader = null;
+            // mImgReader = null;
         }
 
     }
