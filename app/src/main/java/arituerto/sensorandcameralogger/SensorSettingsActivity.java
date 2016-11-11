@@ -20,8 +20,6 @@ public class SensorSettingsActivity extends AppCompatActivity {
 
     private static final String TAG = "SensorSettings";
 
-    // TODO: Keep track of checked/unchecked sensors. Best class??
-
     // SENSORS
     private ArrayList<String> mNameSensorList;
     private boolean[] mSelectedSensorList;
