@@ -13,6 +13,7 @@ import java.io.IOException;
 public class Logger {
 
     private BufferedOutputStream stream;
+    private int nLogs = 0;
 
     public Logger(String filename) throws FileNotFoundException {
         this.stream = new BufferedOutputStream(new FileOutputStream(filename));
@@ -27,9 +28,14 @@ public class Logger {
         this.stream.write(s.getBytes());
         this.stream.write(System.lineSeparator().getBytes());
         this.stream.flush();
+        nLogs ++;
     }
 
     public void close() throws IOException {
         this.stream.close();
+    }
+
+    public int getnLogs() {
+        return nLogs;
     }
 }

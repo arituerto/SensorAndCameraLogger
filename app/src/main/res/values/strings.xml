@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">SensorAndCameraLogger</string>
+    <string name="basic_datasetName">set000</string>
 </resources>

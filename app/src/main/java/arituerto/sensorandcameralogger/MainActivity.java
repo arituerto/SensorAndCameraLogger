@@ -1,10 +1,12 @@
 package arituerto.sensorandcameralogger;
 
 import android.Manifest;
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.Camera;
 import android.graphics.ImageFormat;
 import android.graphics.PixelFormat;
 import android.graphics.SurfaceTexture;
@@ -17,6 +19,7 @@ import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
@@ -95,6 +98,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private CameraManager mCameraManager;
     private CameraDevice mCameraDevice;
+    private CameraCharacteristics mCamCach;
     private CameraCaptureSession mCaptureSession;
     private CaptureRequest.Builder mCameraRequestBuilder;
     private CaptureRequest mCameraRequest;
@@ -198,8 +202,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 mImgReader.setOnImageAvailableListener(mOnImageAvailableListener, mHandler);
                 mReaderSurface = mImgReader.getSurface();
                 setupSurfaces();
-                // Get parameters, change parameters, close capture session, create new imagereader
-                // and relaunch setupCaptureSession if CameraDevice is not null (otherwise relaunch setup camera)
             }
         }
 
@@ -211,15 +213,54 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         FileOutputStream outputStream;
         try {
             outputStream = new FileOutputStream(sessionDescriptionName);
+
             String string;
+            int aux;
+
             string = "DATA_SET_NAME                 " + dataSetName + System.lineSeparator();
             outputStream.write(string.getBytes());
+
             string = "DATA_SET_FOLDER               " + loggingDir + System.lineSeparator();
             outputStream.write(string.getBytes());
-            string = "CAMERA  RESOLUTION            " + mImageSize.getWidth() + "x" + mImageSize.getHeight() + System.lineSeparator();
+
+            string = "CAMERA_RESOLUTION             " + mImageSize.getWidth() + "x" + mImageSize.getHeight() + System.lineSeparator();
             outputStream.write(string.getBytes());
-            string = "CAMERA  AF MODE               " + mNameFocusModeList.get(mFocusMode) + System.lineSeparator();
+
+            string = "CAMERA_AF_MODE                " + mNameFocusModeList.get(mFocusMode) + System.lineSeparator();
             outputStream.write(string.getBytes());
+
+            aux = mCamCach.get(CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE);
+            if (aux == CameraMetadata.SENSOR_INFO_TIMESTAMP_SOURCE_UNKNOWN) {
+                string = "CAMERA_TIMESTAMP_SOURCE    UNKNOWN" + System.lineSeparator();
+            } else if (aux == CameraMetadata.SENSOR_INFO_TIMESTAMP_SOURCE_REALTIME) {
+                string = "CAMERA_TIMESTAMP_SOURCE    REALTIME" + System.lineSeparator();
+            }
+            outputStream.write(string.getBytes());
+
+            if (null != mCamCach.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION)) {
+                string = "CAMERA_INTRINSIC_CALIBRATION    " + mCamCach.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION).toString() + System.lineSeparator();
+                outputStream.write(string.getBytes());
+            }
+
+            if (null != mCamCach.get(CameraCharacteristics.LENS_POSE_TRANSLATION)) {
+                string = "CAMERA_POSE_TRANSLATION         " + mCamCach.get(CameraCharacteristics.LENS_POSE_TRANSLATION).toString() + System.lineSeparator();
+                outputStream.write(string.getBytes());
+            }
+
+            if (null != mCamCach.get(CameraCharacteristics.LENS_POSE_ROTATION)) {
+                string = "CAMERA_POSE_ROTATION            " + mCamCach.get(CameraCharacteristics.LENS_POSE_ROTATION).toString() + System.lineSeparator();
+                outputStream.write(string.getBytes());
+            }
+
+            string = "N_IMAGES                      " + (mCameraLogger.getnLogs()-1) + System.lineSeparator();
+            outputStream.write(string.getBytes());
+
+            for (Map.Entry<Sensor, Logger> iSensorLogger : mSensorLoggerMap.entrySet()) {
+                string = "SENSOR_NAME               " + iSensorLogger.getKey().getName() + System.lineSeparator();
+                outputStream.write(string.getBytes());
+                string = "N_READINGS                " + (iSensorLogger.getValue().getnLogs()-1) + System.lineSeparator();
+                outputStream.write(string.getBytes());
+            }
 
             outputStream.close();
         } catch (Exception e) {
@@ -317,6 +358,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void stopLogging() {
+        writeSessionDescription();
         try {
             mCameraLogger.close();
         } catch (IOException e) {
@@ -331,8 +373,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
         mSensorLoggerMap.clear();
         stopSensorListeners();
-
-        writeSessionDescription();
     }
 
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
@@ -381,16 +421,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         try {
             mCameraId = cameraManager.getCameraIdList()[0]; // TODO: Function to get REAR camera
-            CameraCharacteristics cc = cameraManager.getCameraCharacteristics(mCameraId);
-            StreamConfigurationMap streamMap = cc.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            mCamCach = cameraManager.getCameraCharacteristics(mCameraId);
+            StreamConfigurationMap streamMap = mCamCach.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
             mJpegSizeList = streamMap.getOutputSizes(ImageFormat.JPEG);
             mNameJpegSizeList = new ArrayList<String>();
             for (Size i : mJpegSizeList) {
                 String resolution = i.getWidth() + "x" + i.getHeight();
                 mNameJpegSizeList.add(resolution);
             }
-            setCameraImageSize(mJpegSizeList[mJpegSizeList.length-1]);
-            mFocusModeList = cc.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
+            setCameraImageSize(mJpegSizeList[0]);
+            mFocusModeList = mCamCach.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
             mNameFocusModeList = new ArrayList<String>();
             for (int i = 0; i < mFocusModeList.length; i++) {
                 if (mFocusModeList[i] == CaptureRequest.CONTROL_AF_MODE_OFF) {
