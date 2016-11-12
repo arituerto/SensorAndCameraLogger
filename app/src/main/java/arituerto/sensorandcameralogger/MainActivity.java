@@ -115,6 +115,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     // LOGGING
     boolean sensorLoggingActive = false;
+    long loggingStartTime;
     private File loggingDir;
     private File imageDir;
     private String dataSetName;
@@ -223,6 +224,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             string = "DATA_SET_FOLDER               " + loggingDir + System.lineSeparator();
             outputStream.write(string.getBytes());
 
+            string = "DATA_SET_TIME                 " + ((float) (SystemClock.elapsedRealtime() - loggingStartTime)/1000.0) + " [s]" + System.lineSeparator();
+            outputStream.write(string.getBytes());
+
             string = "CAMERA_RESOLUTION             " + mImageSize.getWidth() + "x" + mImageSize.getHeight() + System.lineSeparator();
             outputStream.write(string.getBytes());
 
@@ -288,6 +292,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private void startLogging() {
 
         startSensorListeners();
+
+        loggingStartTime = SystemClock.elapsedRealtime();
 
         EditText textEntry = (EditText) findViewById(R.id.inputDataSetName);
         dataSetName = textEntry.getText().toString();
