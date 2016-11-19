@@ -44,6 +44,10 @@ import java.util.Map;
 
 public class LoggingActivity extends AppCompatActivity implements SensorEventListener{
 
+    // TODO: Implement a safe way of ending the activity
+
+    private static String TAG = "LoggingActivity";
+
     private boolean mLoggingON;
     private long mStartLoggingTime;
     private File mLoggingDir;
@@ -159,9 +163,14 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
         super.onDestroy();
         mLoggingON = false;
         writeSessionDescription();
-        stopSensorListeners();
-        closeCamera();
-        stopCameraHandlerThread();
+        if (mLogSensor) {
+            stopSensorListeners();
+        }
+        if (mLogCamera) {
+            closeCamera();
+            stopCameraHandlerThread();
+        }
+        Log.i(TAG, "Logging STOP");
     }
 
     // SESSION DESCRIPTION
@@ -172,7 +181,6 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
             outputStream = new FileOutputStream(sessionDescriptionName);
 
             String string;
-            int aux;
 
             string = "DATA_SET_NAME                 " + mDataSetName + System.lineSeparator();
             outputStream.write(string.getBytes());
@@ -233,6 +241,7 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
         mLoggingON = (mLogSensorReady & mLogCameraReady & mLogCPROReady & mLogGPSReady);
         if (mLoggingON) {
             mStartLoggingTime = SystemClock.elapsedRealtimeNanos();
+            Log.i(TAG, "Logging START");
         }
     }
 
@@ -286,7 +295,9 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
     }
 
     private void stopSensorListeners() {
-        mSensorManager.unregisterListener(this);
+        if (null != mSensorManager) {
+            mSensorManager.unregisterListener(this);
+        }
     }
 
     @Override
