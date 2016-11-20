@@ -108,6 +108,7 @@ public class MainActivity extends AppCompatActivity {
             if (resultCode == RESULT_OK) {
                 Log.i(TAG, "Camera Settings Received");
                 Bundle bundle = data.getExtras();
+                mCameraId = bundle.getString("selectedCamera");
                 mImageSize = bundle.getSize("selectedSize");
                 mFocusMode = bundle.getInt("selectedFocus");
             }
