@@ -220,7 +220,8 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
             string = "DATA_SET_FOLDER, " + mLoggingDir + System.lineSeparator();
             outputStream.write(string.getBytes());
 
-            string = "DATA_SET_TIME, " + ((float) (SystemClock.elapsedRealtimeNanos() - mStartLoggingTime)/1000000000.0) + " [s]" + System.lineSeparator();
+            double sessionTime = (SystemClock.elapsedRealtimeNanos() - mStartLoggingTime)/1000000000.0;
+            string = "DATA_SET_TIME, " + (sessionTime) + " [s]" + System.lineSeparator();
             outputStream.write(string.getBytes());
 
             string = "CAMERA_RESOLUTION, " + mCameraSize.getWidth() + "x" + mCameraSize.getHeight() + System.lineSeparator();
@@ -275,13 +276,29 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
                 outputStream.write(string.getBytes());
             }
 
-            string = "N_IMAGES, " + (mCameraLogger.getnLogs()-1) + System.lineSeparator();
+            string = "CAMERA_N_IMAGES, " + (mCameraLogger.getnLogs()-1) + " [" + ((float) (mCameraLogger.getnLogs()-1) / sessionTime) + " Hz]" + System.lineSeparator();
+            outputStream.write(string.getBytes());
+
+            switch (mSensorDelay) {
+                case (SensorManager.SENSOR_DELAY_UI):
+                    string = "SENSOR_DELAY, SENSOR_DELAY_UI" + System.lineSeparator();
+                    break;
+                case (SensorManager.SENSOR_DELAY_NORMAL):
+                    string = "SENSOR_DELAY, SENSOR_DELAY_NORMAL" + System.lineSeparator();
+                    break;
+                case (SensorManager.SENSOR_DELAY_GAME):
+                    string = "SENSOR_DELAY, SENSOR_DELAY_GAME" + System.lineSeparator();
+                    break;
+                case (SensorManager.SENSOR_DELAY_FASTEST):
+                    string = "SENSOR_DELAY, SENSOR_DELAY_FASTEST" + System.lineSeparator();
+                    break;
+            }
             outputStream.write(string.getBytes());
 
             for (Map.Entry<Sensor, Logger> iSensorLogger : mSensorLoggerMap.entrySet()) {
                 string = "SENSOR_NAME, " + iSensorLogger.getKey().getName() + System.lineSeparator();
                 outputStream.write(string.getBytes());
-                string = "N_READINGS, " + (iSensorLogger.getValue().getnLogs()-1) + System.lineSeparator();
+                string = "N_READINGS, " + (iSensorLogger.getValue().getnLogs()-1) + " [" + ((float) (iSensorLogger.getValue().getnLogs()-1) / sessionTime) + " Hz]" + System.lineSeparator();
                 outputStream.write(string.getBytes());
             }
 

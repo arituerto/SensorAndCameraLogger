@@ -66,10 +66,15 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // TODO: Load and save the parameters. Do not start logging without parameters configures or loaded
+        mLogSensor = true;
+        mLogCamera = true;
+        dataSetName = "test";
+
+        EditText textEntry = (EditText) findViewById(R.id.inputDataSetName);
+        textEntry.setText(dataSetName);
 
         Switch sensorSwitch = (Switch) findViewById(R.id.sensorsSwitch);
-        sensorSwitch.setChecked(false);
-        mLogSensor = false;
+        sensorSwitch.setChecked(mLogSensor);
         sensorSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -84,8 +89,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         Switch cameraSwitch = (Switch) findViewById(R.id.cameraSwitch);
-        cameraSwitch.setChecked(false);
-        mLogCamera = false;
+        cameraSwitch.setChecked(mLogCamera);
         cameraSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
