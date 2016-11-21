@@ -3,6 +3,8 @@ package arituerto.sensorandcameralogger;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.ImageFormat;
 import android.graphics.PixelFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.Sensor;
@@ -35,6 +37,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.Buffer;
+import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -164,9 +167,15 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
         mLoggingON = false;
         writeSessionDescription();
         if (mLogSensor) {
+            stopSensorLoggers();
             stopSensorListeners();
         }
         if (mLogCamera) {
+            try {
+                mCameraLogger.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             closeCamera();
             stopCameraHandlerThread();
         }
@@ -300,6 +309,17 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
         }
     }
 
+    private void stopSensorLoggers() {
+        for (Map.Entry<Sensor, Logger> iLogger : mSensorLoggerMap.entrySet()) {
+            try {
+                iLogger.getValue().close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
+    }
+
     @Override
     public void onSensorChanged(SensorEvent event) {
 
@@ -346,8 +366,7 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
     private void setupSurfaces() {
 
         // IMAGE READER
-        // TODO: CHECK FORMAT AVAILABLE FROM CAMERA
-        mImgReader = ImageReader.newInstance(mCameraSize.getWidth(), mCameraSize.getHeight(), PixelFormat.RGBA_8888, 1);
+        mImgReader = ImageReader.newInstance(mCameraSize.getWidth(), mCameraSize.getHeight(), ImageFormat.JPEG, 1);
         mImgReader.setOnImageAvailableListener(mOnImageAvailableListener, mHandler);
         mReaderSurface = mImgReader.getSurface();
 
@@ -465,19 +484,18 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
                 e.printStackTrace();
                 Log.e("ImageReader", "No more buffers available, skipping frame");
             }
-            img.close();
         }
     };
 
     private void processImage(Image image, String imgFileName) {
-        Bitmap bitmap;
         Image.Plane[] planes = image.getPlanes();
-        Buffer buffer = planes[0].getBuffer().rewind();
-        bitmap = Bitmap.createBitmap(image.getWidth(), image.getHeight(), Bitmap.Config.ARGB_8888);
-        bitmap.copyPixelsFromBuffer(buffer);
+        ByteBuffer buffer = planes[0].getBuffer();
+        byte[] bytes = new byte[buffer.capacity()];
+        buffer.get(bytes);
+        image.close();
         try {
             FileOutputStream out = new FileOutputStream(imgFileName);
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
+            out.write(bytes);
             out.flush();
             out.close();
         } catch (Exception e) {
