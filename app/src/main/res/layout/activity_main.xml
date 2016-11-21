@@ -22,18 +22,6 @@
         android:hint="Dataset Name" />
 
     <Button
-        android:text="Stop"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/buttonStopLogging"
-        android:layout_alignBaseline="@+id/buttonStartLogging"
-        android:layout_alignBottom="@+id/buttonStartLogging"
-        android:layout_alignParentEnd="true"
-        style="@style/Widget.AppCompat.Button.Borderless.Colored"
-        android:background="@android:color/holo_red_dark"
-        android:textColor="@android:color/black" />
-
-    <Button
         android:text="Start"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -42,39 +30,42 @@
         android:background="@android:color/holo_green_dark"
         android:textColor="@android:color/black"
         android:layout_alignParentBottom="true"
-        android:layout_alignParentStart="true" />
+        android:layout_centerHorizontal="true" />
 
-    <ProgressBar
-        style="?android:attr/progressBarStyle"
+    <Switch
+        android:text="Log Sensors"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/progressBar"
-        android:indeterminate="false"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true" />
+        android:layout_above="@+id/buttonCameraSettings"
+        android:layout_alignParentStart="true"
+        android:id="@+id/sensorsSwitch"
+        android:layout_below="@+id/inputDataSetName"
+        android:layout_toStartOf="@+id/buttonSensorSettings" />
+
+    <Switch
+        android:text="Log Camera"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/cameraSwitch"
+        android:layout_alignBottom="@+id/buttonCameraSettings"
+        android:layout_alignParentStart="true"
+        android:layout_below="@+id/buttonSensorSettings"
+        android:layout_toStartOf="@+id/buttonCameraSettings" />
 
     <Button
         android:text="Sensor Settings"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/inputDataSetName"
         android:id="@+id/buttonSensorSettings"
-        android:layout_alignEnd="@+id/buttonCameraSettings"
-        android:layout_alignStart="@+id/buttonCameraSettings" />
+        android:layout_below="@+id/inputDataSetName"
+        android:layout_alignParentEnd="true" />
 
     <Button
         android:text="Camera Settings"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:id="@+id/buttonCameraSettings"
         android:layout_below="@+id/buttonSensorSettings"
-        android:layout_centerHorizontal="true"
-        android:id="@+id/buttonCameraSettings" />
-
-    <TextureView
-        android:id="@+id/textureView"
-        android:layout_above="@+id/buttonStopLogging"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/buttonCameraSettings" />
+        android:layout_toEndOf="@+id/sensorsSwitch" />
 
 </RelativeLayout>
