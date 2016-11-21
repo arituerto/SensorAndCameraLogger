@@ -3,6 +3,7 @@ package arituerto.sensorandcameralogger;
 import android.app.VoiceInteractor;
 import android.content.Intent;
 import android.graphics.ImageFormat;
+import android.graphics.PixelFormat;
 import android.hardware.SensorManager;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCharacteristics;
@@ -40,8 +41,6 @@ public class CameraSettingsActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
-        // TODO: Save LENS_POSE_ROTATION and LENS_POSE_TRANSLATION
 
         Log.i(TAG, "onCreate");
 
@@ -90,7 +89,7 @@ public class CameraSettingsActivity extends AppCompatActivity {
             public void onNothingSelected(AdapterView<?> parent) {
                 setCameraId(mCameraIdList[0]);
             }
-        });;
+        });
     }
 
     private void configureCameraPropsSpinners() {
@@ -119,22 +118,22 @@ public class CameraSettingsActivity extends AppCompatActivity {
         for (int i = 0; i < mFocusModeList.length; i++) {
             switch (mFocusModeList[i]) {
                 case (CameraCharacteristics.CONTROL_AF_MODE_AUTO):
-                    camAFStringList[i] = "AUTO";
+                    camAFStringList[i] = "CONTROL_AF_MODE_AUTO";
                     break;
                 case (CameraCharacteristics.CONTROL_AF_MODE_CONTINUOUS_PICTURE):
-                    camAFStringList[i] = "CONTINUOUS PICTURE";
+                    camAFStringList[i] = "CONTROL_AF_MODE_CONTINUOUS_PICTURE PICTURE";
                     break;
                 case (CameraCharacteristics.CONTROL_AF_MODE_CONTINUOUS_VIDEO):
-                    camAFStringList[i] = "CONTINUOUS VIDEO";
+                    camAFStringList[i] = "CONTROL_AF_MODE_CONTINUOUS_VIDEO VIDEO";
                     break;
                 case (CameraCharacteristics.CONTROL_AF_MODE_MACRO):
-                    camAFStringList[i] = "MACRO";
+                    camAFStringList[i] = "CONTROL_AF_MODE_MACRO";
                     break;
                 case (CameraCharacteristics.CONTROL_AF_MODE_EDOF):
-                    camAFStringList[i] = "EDOF";
+                    camAFStringList[i] = "CONTROL_AF_MODE_EDOF";
                     break;
                 case (CameraCharacteristics.CONTROL_AF_MODE_OFF):
-                    camAFStringList[i] = "OFF";
+                    camAFStringList[i] = "CONTROL_AF_MODE_OFF";
                     break;
             }
         }

@@ -13,8 +13,10 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
+import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.TotalCaptureResult;
 import android.media.Image;
@@ -31,6 +33,7 @@ import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -46,8 +49,6 @@ import java.util.List;
 import java.util.Map;
 
 public class LoggingActivity extends AppCompatActivity implements SensorEventListener{
-
-    // TODO: Implement a safe way of ending the activity
 
     private static String TAG = "LoggingActivity";
 
@@ -89,6 +90,9 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
     private Surface mPreviewSurface;
     private Surface mReaderSurface;
     private List<Surface> mSurfaceList = new ArrayList<Surface>();
+
+    // STOP ACTIVITY
+    boolean mDoubleBackToExitPressedOnce = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -182,6 +186,25 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
         Log.i(TAG, "Logging STOP");
     }
 
+    @Override
+    public void onBackPressed() {
+        if (mDoubleBackToExitPressedOnce) {
+            super.onBackPressed();
+            return;
+        }
+
+        this.mDoubleBackToExitPressedOnce = true;
+        Toast.makeText(this, "Please click BACK again to exit", Toast.LENGTH_SHORT).show();
+
+        new Handler().postDelayed(new Runnable() {
+
+            @Override
+            public void run() {
+                mDoubleBackToExitPressedOnce=false;
+            }
+        }, 2000);
+    }
+
     // SESSION DESCRIPTION
     private void writeSessionDescription() {
         String sessionDescriptionName = mLoggingDir.getPath() + "/sessionDescription.txt";
@@ -191,51 +214,74 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
 
             String string;
 
-            string = "DATA_SET_NAME                 " + mDataSetName + System.lineSeparator();
+            string = "DATA_SET_NAME, " + mDataSetName + System.lineSeparator();
             outputStream.write(string.getBytes());
 
-            string = "DATA_SET_FOLDER               " + mLoggingDir + System.lineSeparator();
+            string = "DATA_SET_FOLDER, " + mLoggingDir + System.lineSeparator();
             outputStream.write(string.getBytes());
 
-            string = "DATA_SET_TIME                 " + ((float) (SystemClock.elapsedRealtimeNanos() - mStartLoggingTime)/1000000000.0) + " [s]" + System.lineSeparator();
+            string = "DATA_SET_TIME, " + ((float) (SystemClock.elapsedRealtimeNanos() - mStartLoggingTime)/1000000000.0) + " [s]" + System.lineSeparator();
             outputStream.write(string.getBytes());
 
-            string = "CAMERA_RESOLUTION             " + mCameraSize.getWidth() + "x" + mCameraSize.getHeight() + System.lineSeparator();
+            string = "CAMERA_RESOLUTION, " + mCameraSize.getWidth() + "x" + mCameraSize.getHeight() + System.lineSeparator();
             outputStream.write(string.getBytes());
 
-//            string = "CAMERA_AF_MODE                " + mNameFocusModeList.get(mFocusMode) + System.lineSeparator();
-//            outputStream.write(string.getBytes());
+            switch (mCameraAF) {
+                case (CameraCharacteristics.CONTROL_AF_MODE_AUTO):
+                    string = "CAMERA_AF_MODE, CONTROL_AF_MODE_AUTO" + System.lineSeparator();
+                    break;
+                case (CameraCharacteristics.CONTROL_AF_MODE_CONTINUOUS_PICTURE):
+                    string = "CAMERA_AF_MODE, CONTROL_AF_MODE_CONTINUOUS_PICTURE" + System.lineSeparator();
+                    break;
+                case (CameraCharacteristics.CONTROL_AF_MODE_CONTINUOUS_VIDEO):
+                    string = "CAMERA_AF_MODE, CONTROL_AF_MODE_CONTINUOUS_PICTURE" + System.lineSeparator();
+                    break;
+                case (CameraCharacteristics.CONTROL_AF_MODE_EDOF):
+                    string = "CAMERA_AF_MODE, CONTROL_AF_MODE_EDOF" + System.lineSeparator();
+                    break;
+                case (CameraCharacteristics.CONTROL_AF_MODE_MACRO):
+                    string = "CAMERA_AF_MODE, CONTROL_AF_MODE_MACRO" + System.lineSeparator();
+                    break;
+                case (CameraCharacteristics.CONTROL_AF_MODE_OFF):
+                    string = "CAMERA_AF_MODE, CONTROL_AF_MODE_OFF" + System.lineSeparator();
+                    break;
+            }
+            outputStream.write(string.getBytes());
 
-//            aux = mCamCach.get(CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE);
-//            if (aux == CameraMetadata.SENSOR_INFO_TIMESTAMP_SOURCE_UNKNOWN) {
-//                string = "CAMERA_TIMESTAMP_SOURCE    UNKNOWN" + System.lineSeparator();
-//            } else if (aux == CameraMetadata.SENSOR_INFO_TIMESTAMP_SOURCE_REALTIME) {
-//                string = "CAMERA_TIMESTAMP_SOURCE    REALTIME" + System.lineSeparator();
-//            }
-//            outputStream.write(string.getBytes());
-//
-//            if (null != mCamCach.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION)) {
-//                string = "CAMERA_INTRINSIC_CALIBRATION    " + mCamCach.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION).toString() + System.lineSeparator();
-//                outputStream.write(string.getBytes());
-//            }
-//
-//            if (null != mCamCach.get(CameraCharacteristics.LENS_POSE_TRANSLATION)) {
-//                string = "CAMERA_POSE_TRANSLATION         " + mCamCach.get(CameraCharacteristics.LENS_POSE_TRANSLATION).toString() + System.lineSeparator();
-//                outputStream.write(string.getBytes());
-//            }
-//
-//            if (null != mCamCach.get(CameraCharacteristics.LENS_POSE_ROTATION)) {
-//                string = "CAMERA_POSE_ROTATION            " + mCamCach.get(CameraCharacteristics.LENS_POSE_ROTATION).toString() + System.lineSeparator();
-//                outputStream.write(string.getBytes());
-//            }
+            CameraCharacteristics cc = mCameraManager.getCameraCharacteristics(mCameraId);
 
-            string = "N_IMAGES                      " + (mCameraLogger.getnLogs()-1) + System.lineSeparator();
+            switch (cc.get(CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE)) {
+                case (CameraMetadata.SENSOR_INFO_TIMESTAMP_SOURCE_UNKNOWN):
+                    string = "CAMERA_TIMESTAMP_SOURCE, SENSOR_INFO_TIMESTAMP_SOURCE_UNKNOWN" + System.lineSeparator();
+                    break;
+                case (CameraMetadata.SENSOR_INFO_TIMESTAMP_SOURCE_REALTIME):
+                    string = "CAMERA_TIMESTAMP_SOURCE, SENSOR_INFO_TIMESTAMP_SOURCE_REALTIME" + System.lineSeparator();
+                    break;
+            }
+            outputStream.write(string.getBytes());
+
+            if (null != cc.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION)) {
+                string = "CAMERA_INTRINSIC_CALIBRATION, " + cc.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION).toString() + System.lineSeparator();
+                outputStream.write(string.getBytes());
+            }
+
+            if (null != cc.get(CameraCharacteristics.LENS_POSE_TRANSLATION)) {
+                string = "CAMERA_POSE_TRANSLATION, " + cc.get(CameraCharacteristics.LENS_POSE_TRANSLATION).toString() + System.lineSeparator();
+                outputStream.write(string.getBytes());
+            }
+
+            if (null != cc.get(CameraCharacteristics.LENS_POSE_ROTATION)) {
+                string = "CAMERA_POSE_ROTATION, " + cc.get(CameraCharacteristics.LENS_POSE_ROTATION).toString() + System.lineSeparator();
+                outputStream.write(string.getBytes());
+            }
+
+            string = "N_IMAGES, " + (mCameraLogger.getnLogs()-1) + System.lineSeparator();
             outputStream.write(string.getBytes());
 
             for (Map.Entry<Sensor, Logger> iSensorLogger : mSensorLoggerMap.entrySet()) {
-                string = "SENSOR_NAME               " + iSensorLogger.getKey().getName() + System.lineSeparator();
+                string = "SENSOR_NAME, " + iSensorLogger.getKey().getName() + System.lineSeparator();
                 outputStream.write(string.getBytes());
-                string = "N_READINGS                " + (iSensorLogger.getValue().getnLogs()-1) + System.lineSeparator();
+                string = "N_READINGS, " + (iSensorLogger.getValue().getnLogs()-1) + System.lineSeparator();
                 outputStream.write(string.getBytes());
             }
 

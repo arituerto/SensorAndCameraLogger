@@ -1,8 +1,12 @@
 package arituerto.sensorandcameralogger;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
+import android.os.Handler;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -12,14 +16,14 @@ import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Switch;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
     // TODO: Save configuration for next runs.
     // TODO: Add GPS logging
-    // TODO: Add EXIT button or option
 
-    private static final String TAG = "MAIN";
+    private static final String TAG = "MainActivity";
 
     static final int SENSORS_SETTINGS_REQUEST = 1;
     static final int CAMERA_SETTINGS_REQUEST = 2;
@@ -38,16 +42,30 @@ public class MainActivity extends AppCompatActivity {
     // LOGGING
     private String dataSetName;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // INITIAL CONFIG
-        mSensorDelay = SensorManager.SENSOR_DELAY_UI;
-        SensorManager sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-        mSelectedSensorList = new boolean[sensorManager.getSensorList(Sensor.TYPE_ALL).size()];
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 1);
+            return;
+        }
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+            return;
+        }
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+            return;
+        }
+
+        // TODO: Load and save the parameters. Do not start logging without parameters configures or loaded
 
         Switch sensorSwitch = (Switch) findViewById(R.id.sensorsSwitch);
         sensorSwitch.setChecked(false);
@@ -122,25 +140,28 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
 
-            EditText textEntry = (EditText) findViewById(R.id.inputDataSetName);
-            dataSetName = textEntry.getText().toString();
+            if (mLogSensor | mLogCamera) {
 
-            Intent intent = new Intent(MainActivity.this, LoggingActivity.class);
-            Bundle outBundle = new Bundle();
+                EditText textEntry = (EditText) findViewById(R.id.inputDataSetName);
+                dataSetName = textEntry.getText().toString();
 
-            outBundle.putString("dataSetName", dataSetName);
-            outBundle.putBoolean("LogSensor", mLogSensor);
-            outBundle.putInt("SensorDelay", mSensorDelay);
-            outBundle.putBooleanArray("SensorSelection", mSelectedSensorList);
+                Intent intent = new Intent(MainActivity.this, LoggingActivity.class);
+                Bundle outBundle = new Bundle();
 
-            outBundle.putBoolean("LogCamera", mLogCamera);
-            outBundle.putString("CameraId", mCameraId);
-            outBundle.putSize("CameraSize", mImageSize);
-            outBundle.putInt("CameraAF", mFocusMode);
+                outBundle.putString("dataSetName", dataSetName);
+                outBundle.putBoolean("LogSensor", mLogSensor);
+                outBundle.putInt("SensorDelay", mSensorDelay);
+                outBundle.putBooleanArray("SensorSelection", mSelectedSensorList);
 
-            intent.putExtras(outBundle);
+                outBundle.putBoolean("LogCamera", mLogCamera);
+                outBundle.putString("CameraId", mCameraId);
+                outBundle.putSize("CameraSize", mImageSize);
+                outBundle.putInt("CameraAF", mFocusMode);
 
-            startActivity(intent);
+                intent.putExtras(outBundle);
+
+                startActivity(intent);
+            }
         }
     };
 
