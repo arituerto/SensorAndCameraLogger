@@ -3,9 +3,6 @@ package arituerto.sensorandcameralogger;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.hardware.Sensor;
-import android.hardware.SensorManager;
-import android.os.Handler;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -16,7 +13,6 @@ import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Switch;
-import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -27,17 +23,22 @@ public class MainActivity extends AppCompatActivity {
 
     static final int SENSORS_SETTINGS_REQUEST = 1;
     static final int CAMERA_SETTINGS_REQUEST = 2;
+    static final int GPS_SETTINGS_REQUEST = 3;
 
     // SENSORS
     private boolean mLogSensor;
     private boolean[] mSelectedSensorList;
-    private int mSensorDelay = SensorManager.SENSOR_DELAY_UI;
+    private int mSensorDelay;
 
     // CAMERA
     private boolean mLogCamera;
     private String mCameraId;
     private Size mImageSize;
     private int mFocusMode;
+    private int mOutFormat;
+
+    // GPS
+    private boolean mLogGPS;
 
     // LOGGING
     private String dataSetName;
@@ -49,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
+        // Check permissions
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 1);
             return;
@@ -68,6 +69,7 @@ public class MainActivity extends AppCompatActivity {
         // TODO: Load and save the parameters. Do not start logging without parameters configures or loaded
         mLogSensor = true;
         mLogCamera = true;
+        mLogGPS = false;
         dataSetName = "test";
 
         EditText textEntry = (EditText) findViewById(R.id.inputDataSetName);
@@ -83,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.i(TAG, "Sensors Logging ON");
                 } else {
                     mLogSensor = false;
-                    Log.i(TAG, "Sensors Logging ON");
+                    Log.i(TAG, "Sensors Logging OFF");
                 }
             }
         });
@@ -133,6 +135,7 @@ public class MainActivity extends AppCompatActivity {
                 mCameraId = bundle.getString("selectedCamera");
                 mImageSize = bundle.getSize("selectedSize");
                 mFocusMode = bundle.getInt("selectedFocus");
+                mOutFormat = bundle.getInt("selectedOutFormat");
             }
 
         }
@@ -161,6 +164,7 @@ public class MainActivity extends AppCompatActivity {
                 outBundle.putString("CameraId", mCameraId);
                 outBundle.putSize("CameraSize", mImageSize);
                 outBundle.putInt("CameraAF", mFocusMode);
+                outBundle.putInt("OutputFormat", mOutFormat);
 
                 intent.putExtras(outBundle);
 
