@@ -75,6 +75,7 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
     private String mCameraId;
     private Size mCameraSize;
     private int mCameraAF;
+    private int mOutputFormat;
     private File mCameraLoggingDir;
     private CameraManager mCameraManager;
     private CameraDevice mCameraDevice;
@@ -429,7 +430,8 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
     private void setupSurfaces() {
 
         // IMAGE READER
-        mImgReader = ImageReader.newInstance(mCameraSize.getWidth(), mCameraSize.getHeight(), ImageFormat.JPEG, 1);
+        // TODO: Solve Image format issue
+        mImgReader = ImageReader.newInstance(mCameraSize.getWidth(), mCameraSize.getHeight(), ImageFormat.JPEG, 10);
         mImgReader.setOnImageAvailableListener(mOnImageAvailableListener, mHandler);
         mReaderSurface = mImgReader.getSurface();
 

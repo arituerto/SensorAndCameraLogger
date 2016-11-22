@@ -34,15 +34,6 @@
         android:layout_centerHorizontal="true"
         android:id="@+id/spinnerCamId" />
 
-    <TextView
-        android:text="Select Image Resoluion"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/spinnerCamId"
-        android:layout_alignParentStart="true"
-        android:id="@+id/textView9"
-        android:textSize="24sp" />
-
     <Spinner
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -50,20 +41,45 @@
         android:layout_centerHorizontal="true"
         android:id="@+id/spinnerResolution" />
 
-    <TextView
-        android:text="Select Auto Focus"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/spinnerResolution"
-        android:layout_alignParentStart="true"
-        android:id="@+id/textView10"
-        android:textSize="24sp" />
-
     <Spinner
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@+id/textView10"
         android:layout_centerHorizontal="true"
         android:id="@+id/spinnerAF" />
+
+    <TextView
+        android:text="Select Auto Focus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/textView10"
+        android:textSize="24sp"
+        android:layout_below="@+id/spinnerResolution"
+        android:layout_alignParentStart="true" />
+
+    <TextView
+        android:text="Output Format"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/spinnerCamId"
+        android:layout_alignParentStart="true"
+        android:id="@+id/textView2"
+        android:textSize="24sp" />
+
+    <Spinner
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/textView2"
+        android:layout_centerHorizontal="true"
+        android:id="@+id/spinnerOutputFormat" />
+
+    <TextView
+        android:text="Select Image Resoluion"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/textView9"
+        android:textSize="24sp"
+        android:layout_below="@+id/spinnerOutputFormat"
+        android:layout_alignParentStart="true" />
 
 </RelativeLayout>

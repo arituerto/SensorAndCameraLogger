@@ -31,7 +31,10 @@ public class CameraSettingsActivity extends AppCompatActivity {
 
     private CameraManager mCameraManager;
     private CameraCharacteristics mCameraCharacteristics;
+    private StreamConfigurationMap mStreamConfigurationMap;
 
+    private int[] mOutputFormatsList;
+    private int mOutFormat;
     private String[] mCameraIdList;
     private String mCameraId;
     private Size[] mImageSizeList;
@@ -69,6 +72,7 @@ public class CameraSettingsActivity extends AppCompatActivity {
             bundle.putString("selectedCamera", mCameraId);
             bundle.putSize("selectedSize", mImageSize);
             bundle.putInt("selectedFocus", mFocusMode);
+            bundle.putInt("selectedOutFormat", mOutFormat);
             returnIntent.putExtras(bundle);
             setResult(RESULT_OK, returnIntent);
             finish();
@@ -88,6 +92,28 @@ public class CameraSettingsActivity extends AppCompatActivity {
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
                 setCameraId(mCameraIdList[0]);
+            }
+        });
+    }
+
+    private void configureOutputFormatSpinner() {
+
+        String[] outFormatStringList = new String[mOutputFormatsList.length];
+        for (int i = 0; i < mOutputFormatsList.length; i++) {
+            outFormatStringList[i] = getOutputFormatName(i);
+        }
+        Spinner outFormatSpinner = (Spinner) findViewById(R.id.spinnerOutputFormat);
+        ArrayAdapter outFormatAdapter = new ArrayAdapter(this, R.layout.support_simple_spinner_dropdown_item, outFormatStringList);
+        outFormatSpinner.setAdapter(outFormatAdapter);
+        outFormatSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                setOutputFormat(mOutputFormatsList[position]);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                setOutputFormat(mOutputFormatsList[0]);
             }
         });
     }
@@ -160,14 +186,50 @@ public class CameraSettingsActivity extends AppCompatActivity {
         mCameraId = camId;
         try {
             mCameraCharacteristics = mCameraManager.getCameraCharacteristics(camId);
-            StreamConfigurationMap scm = mCameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-            mImageSizeList = scm.getOutputSizes(ImageFormat.JPEG);
-            mFocusModeList = mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
-            configureCameraPropsSpinners();
+            mStreamConfigurationMap = mCameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            mOutputFormatsList = mStreamConfigurationMap.getOutputFormats();
+            configureOutputFormatSpinner();
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
     }
 
+    private void setOutputFormat(int outFormat) {
+        Log.i(TAG, "Output format selected " + outFormat);
+        mOutFormat = outFormat;
+        mImageSizeList = mStreamConfigurationMap.getOutputSizes(outFormat);
+        mFocusModeList = mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
+        configureCameraPropsSpinners();
+    }
+
+    private String getOutputFormatName(int i) {
+        String outString = "";
+        switch (i) {
+            case (ImageFormat.DEPTH16): outString = "DEPTH16"; break;
+            case (ImageFormat.DEPTH_POINT_CLOUD): outString = "DEPTH_POINT_CLOUD"; break;
+            case (ImageFormat.FLEX_RGB_888): outString = "FLEX_RGB_888"; break;
+            case (ImageFormat.FLEX_RGBA_8888): outString = "FLEX_RGBA_8888"; break;
+            case (ImageFormat.JPEG): outString = "JPEG"; break;
+            case (ImageFormat.NV16): outString = "NV16"; break;
+            case (ImageFormat.NV21): outString = "NV21"; break;
+            case (ImageFormat.PRIVATE): outString = "PRIVATE"; break;
+            case (ImageFormat.RAW10): outString = "RAW10"; break;
+            case (ImageFormat.RAW12): outString = "RAW12"; break;
+            case (ImageFormat.RAW_SENSOR): outString = "RAW_SENSOR"; break;
+            case (ImageFormat.RGB_565): outString = "RGB_565"; break;
+            case (ImageFormat.UNKNOWN): outString = "UNKNOWN"; break;
+            case (ImageFormat.YUV_420_888): outString = "YUV_420_888"; break;
+            case (ImageFormat.YUV_422_888): outString = "YUV_422_888"; break;
+            case (ImageFormat.YUY2): outString = "YUY2"; break;
+            case (ImageFormat.YV12): outString = "YV12"; break;
+            case (PixelFormat.RGBA_8888): outString = "RGBA_8888"; break;
+            case (PixelFormat.RGBX_8888): outString = "RGBX_8888"; break;
+            case (PixelFormat.TRANSLUCENT): outString = "TRANSLUCENT"; break;
+            case (PixelFormat.TRANSPARENT): outString = "TRANSPARENT"; break;
+            case (PixelFormat.RGB_888): outString = "RGB_888"; break;
+        }
+
+        return outString;
+    }
 
 }
