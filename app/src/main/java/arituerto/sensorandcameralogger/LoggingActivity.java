@@ -48,7 +48,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class LoggingActivity extends AppCompatActivity implements SensorEventListener{
+public class LoggingActivity extends AppCompatActivity implements SensorEventListener {
 
     private static String TAG = "LoggingActivity";
 

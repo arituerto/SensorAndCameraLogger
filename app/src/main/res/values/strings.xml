@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">SensorAndCameraLogger</string>
-    <string name="basic_datasetName">set000</string>
+    <string name="app_name">SKI Logger</string>
+    <string name="basic_datasetName">test</string>
 </resources>

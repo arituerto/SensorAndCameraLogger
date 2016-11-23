@@ -68,4 +68,23 @@
         android:layout_below="@+id/buttonSensorSettings"
         android:layout_toEndOf="@+id/sensorsSwitch" />
 
+    <Button
+        android:text="CPRO SETTINGS"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/buttonCPROSettings"
+        android:layout_below="@+id/cameraSwitch"
+        android:layout_alignParentEnd="true"
+        android:layout_toEndOf="@+id/cameraSwitch" />
+
+    <Switch
+        android:text="Log CPRO"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/cproSwitch"
+        android:layout_alignBottom="@+id/buttonCPROSettings"
+        android:layout_alignParentStart="true"
+        android:layout_toStartOf="@+id/buttonCPROSettings"
+        android:layout_below="@+id/cameraSwitch" />
+
 </RelativeLayout>
