@@ -42,6 +42,11 @@ public class MainActivity extends AppCompatActivity {
     private String mCPRO_Rmac;
     private String mCPRO_Lmac;
     private float mCPROfreq;
+    private boolean mCPROAccelerometer;
+    private boolean mCPROGyroscope;
+    private boolean mCPROBarometer;
+    private boolean mCPROMagnetometer;
+    private boolean mCPROThermometer;
 
     // LOGGING
     private String dataSetName;
@@ -161,6 +166,11 @@ public class MainActivity extends AppCompatActivity {
                     mCPRO_Rmac = bundle.getString("CPRORmac");
                     mCPRO_Lmac = bundle.getString("CPROLmac");
                     mCPROfreq = bundle.getFloat("CPROfreq");
+                    mCPROAccelerometer = bundle.getBoolean("CPROAccelerometer");
+                    mCPROGyroscope = bundle.getBoolean("CPROGyroscope");
+                    mCPROBarometer = bundle.getBoolean("CPROBarometer");
+                    mCPROMagnetometer = bundle.getBoolean("CPROMagnetometer");
+                    mCPROThermometer = bundle.getBoolean("CPROThermometer");
                 }
                 break;
         }
@@ -172,7 +182,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
 
-            if (mLogSensor | mLogCamera) {
+            if (mLogSensor | mLogCamera | mLogCPRO) {
 
                 EditText textEntry = (EditText) findViewById(R.id.inputDataSetName);
                 dataSetName = textEntry.getText().toString();
@@ -195,6 +205,11 @@ public class MainActivity extends AppCompatActivity {
                 outBundle.putString("CPRORmac", mCPRO_Rmac);
                 outBundle.putString("CPROLmac", mCPRO_Lmac);
                 outBundle.putFloat("CPROfreq", mCPROfreq);
+                outBundle.putBoolean("CPROAccelerometer", mCPROAccelerometer);
+                outBundle.putBoolean("CPROGyroscope", mCPROGyroscope);
+                outBundle.putBoolean("CPROBarometer", mCPROBarometer);
+                outBundle.putBoolean("CPROMagnetometer", mCPROMagnetometer);
+                outBundle.putBoolean("CPROThermometer", mCPROThermometer);
 
                 intent.putExtras(outBundle);
 
