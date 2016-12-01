@@ -50,6 +50,12 @@ import com.mbientlab.metawear.RouteManager;
 import com.mbientlab.metawear.UnsupportedModuleException;
 import com.mbientlab.metawear.data.CartesianFloat;
 import com.mbientlab.metawear.module.Accelerometer;
+import com.mbientlab.metawear.module.Barometer;
+import com.mbientlab.metawear.module.Bmi160Accelerometer;
+import com.mbientlab.metawear.module.Bmi160Gyro;
+import com.mbientlab.metawear.module.Bmm150Magnetometer;
+import com.mbientlab.metawear.module.Bmp280Barometer;
+import com.mbientlab.metawear.module.Gyro;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -106,15 +112,15 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
 
     private String mCPRO_Rmac;
     private String mCPRO_Lmac;
-    private float mCPROfreq;
     private boolean mCPROAccelerometer;
     private boolean mCPROGyroscope;
     private boolean mCPROBarometer;
     private boolean mCPROMagnetometer;
-    private boolean mCPROThermometer;
     private MetaWearBleService.LocalBinder mServiceBinder;
-    private MetaWearBoard mRboard;
-    private MetaWearBoard mLboard;
+    private CPROboardLog mRboard;
+    private CPROboardLog mLboard;
+    private MetaWearBoard mBoard;
+    private Accelerometer mModule;
 
     //PREVIEW SURFACE
     private Surface mPreviewSurface;
@@ -126,6 +132,8 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+        Log.i(TAG, "onCreate");
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_logging);
@@ -150,12 +158,10 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
         mLogCPRO = inBundle.getBoolean("LogCPRO");
         mCPRO_Rmac = inBundle.getString("CPRORmac");
         mCPRO_Lmac = inBundle.getString("CPROLmac");
-        mCPROfreq = inBundle.getFloat("CPROfreq");
         mCPROAccelerometer = inBundle.getBoolean("CPROAccelerometer");
         mCPROGyroscope = inBundle.getBoolean("CPROGyroscope");
         mCPROBarometer = inBundle.getBoolean("CPROBarometer");
         mCPROMagnetometer = inBundle.getBoolean("CPROMagnetometer");
-        mCPROThermometer = inBundle.getBoolean("CPROThermometer");
         mLogCPROReady = !mLogCPRO;
 
         // Create Logging directory
@@ -168,22 +174,20 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
                 "_" + mDataSetName);
         try {
             mLoggingDir.mkdirs();
+            Log.i(TAG, "logging dir created");
         } catch (SecurityException e) {
             e.printStackTrace();
             return;
         }
 
         if (mLogSensor) {
-            startSensorListeners();
-            createSensorLoggers();
-            mLogSensorReady = true;
-            startLogging();
+            startSensorListenersAndLoggers();
         }
 
-        if (mLogCPRO) {
+//        if (mLogCPRO) {
             getApplicationContext().bindService(new Intent(this, MetaWearBleService.class),
                     this, Context.BIND_AUTO_CREATE);
-        }
+//        }
 
         if (mLogCamera) {
             startCameraHandlerThread();
@@ -206,13 +210,14 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
                 e.printStackTrace();
             }
             setupSurfaces(); // Chain reaction
-            mLogCameraReady = true;
-            startLogging();
         }
     }
 
     @Override
     protected void onDestroy() {
+
+        Log.i(TAG, "onDestroy");
+
         super.onDestroy();
         mLoggingON = false;
         writeSessionDescription();
@@ -221,6 +226,8 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
             stopSensorListeners();
         }
         if (mLogCPRO) {
+            mRboard.disconnect();
+            mLboard.disconnect();
             getApplicationContext().unbindService(this);
         }
         if (mLogCamera) {
@@ -259,42 +266,26 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
         mLoggingON = (mLogSensorReady & mLogCameraReady & mLogCPROReady & mLogGPSReady);
         if (mLoggingON) {
             mStartLoggingTime = SystemClock.elapsedRealtimeNanos();
+//            mRboard.activateLogging();
             Log.i(TAG, "Logging START");
         }
     }
 
     // SENSOR FUNCTIONS
-    private void startSensorListeners() {
-
+    private void startSensorListenersAndLoggers() {
+        Log.i(TAG, "startSensorListenersAndLoggers");
+        String loggerFileName;
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-
         mSensorList = mSensorManager.getSensorList(Sensor.TYPE_ALL);
-
-        assert (mSensorList.size() == mSelectedSensorList.length);
-
         for (int iSensor = 0; iSensor < mSelectedSensorList.length; iSensor++) {
             if (mSelectedSensorList[iSensor]) {
                 mSensorManager.registerListener(this,
                         mSensorList.get(iSensor),
                         mSensorDelay);
-            }
-        }
-    }
-
-    private void createSensorLoggers(){
-
-        String loggerFileName;
-
-        for (int iSensor = 0; iSensor < mSelectedSensorList.length; iSensor++) {
-
-            if (mSelectedSensorList[iSensor]) {
-
                 Sensor sensor = mSensorList.get(iSensor);
-
                 String sensorTypeString = sensor.getStringType();
                 String[] parts = sensorTypeString.split("\\.");
                 loggerFileName = mLoggingDir.getPath() + "/sensor_" + parts[parts.length - 1].toUpperCase() + "_log.csv";
-
                 // First line: Data description
                 String csvFormat = "// SYSTEM_TIME [ns], EVENT_TIMESTAMP [ns], EVENT_" + sensorTypeString + "_VALUES";
                 try {
@@ -310,15 +301,23 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
                 }
             }
         }
+        mLogSensorReady = true;
+        startLogging();
     }
 
     private void stopSensorListeners() {
+
+        Log.i(TAG, "stopSensorListeners");
+
         if (null != mSensorManager) {
             mSensorManager.unregisterListener(this);
         }
     }
 
     private void stopSensorLoggers() {
+
+        Log.i(TAG, "stopSensorLoggers");
+
         for (Map.Entry<Sensor, Logger> iLogger : mSensorLoggerMap.entrySet()) {
             try {
                 iLogger.getValue().close();
@@ -331,7 +330,6 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-
         if (mLoggingON) {
             Sensor key = event.sensor;
             Logger sensorLogger = mSensorLoggerMap.get(key);
@@ -354,67 +352,25 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
     @Override
     public void onServiceConnected(ComponentName name, IBinder service) {
 
-        Log.i(TAG, "Service Connected");
+        Log.i(TAG, "MetaWear Service Connected");
 
         mServiceBinder = (MetaWearBleService.LocalBinder) service;
 
         BluetoothManager bt = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
 
         BluetoothDevice deviceR = bt.getAdapter().getRemoteDevice(mCPRO_Rmac);
-        mRboard = mServiceBinder.getMetaWearBoard(deviceR);
-        mRboard.setConnectionStateHandler(new MetaWearBoard.ConnectionStateHandler() {
-            @Override
-            public void connected() {
-                super.connected();
-                Log.i(TAG, "Meta Board R connected!");
-                try {
-                    mRboard.getModule(Accelerometer.class).setOutputDataRate(mCPROfreq);
-                    mRboard.getModule(Accelerometer.class).setAxisSamplingRange(4.0f);
-                    mRboard.getModule(Accelerometer.class).routeData().fromAxes().
-                            stream("r_accel_stream_key").commit().onComplete(new AsyncOperation.CompletionHandler<RouteManager>() {
-                        @Override
-                        public void success(RouteManager result) {
-                            super.success(result);
-                            result.subscribe("r_accel_stream_key", new RouteManager.MessageHandler() {
-                                @Override
-                                public void process(Message msg) {
-                                    Log.i(TAG, "CPRO_R: " + msg.getTimestampAsString() + " - " + msg.getData(CartesianFloat.class).toString());
-                                }
-                            });
-                        }
-                    });
-                    mRboard.getModule(Accelerometer.class).enableAxisSampling();
-                    mRboard.getModule(Accelerometer.class).start();
-                } catch (UnsupportedModuleException e) {
-                    Log.e("MainActivity", "No accelerometer present on this board", e);
-                }
-            }
-
-            @Override
-            public void failure(int status, Throwable error) {
-                super.failure(status, error);
-                Log.i(TAG, "Meta Board R failed to connect!");
-            }
-        });
+        mRboard = new CPROboardLog("CPRO_R", mServiceBinder.getMetaWearBoard(deviceR), mLoggingDir);
+        mRboard.connect();
 
         BluetoothDevice deviceL = bt.getAdapter().getRemoteDevice(mCPRO_Lmac);
-        mLboard = mServiceBinder.getMetaWearBoard(deviceL);
-        mLboard.setConnectionStateHandler(new MetaWearBoard.ConnectionStateHandler() {
-            @Override
-            public void connected() {
-                super.connected();
-                Log.i(TAG, "Meta Board L connected!");
-            }
-
-            @Override
-            public void failure(int status, Throwable error) {
-                super.failure(status, error);
-                Log.i(TAG, "Meta Board L failed to connect!");
-            }
-        });
-
-        mRboard.connect();
+        mLboard = new CPROboardLog("CPRO_L", mServiceBinder.getMetaWearBoard(deviceL), mLoggingDir);
         mLboard.connect();
+
+        mRboard.activateLogging();
+        mLboard.activateLogging();
+
+        mLogCPROReady = true;
+        startLogging();
     }
 
     @Override
@@ -446,9 +402,12 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
     // when the camera is ready
     private void setupSurfaces() {
 
+        Log.i(TAG, "setupSurfaces");
+
         // IMAGE READER
         // TODO: Solve Image format issue
-        mImgReader = ImageReader.newInstance(mCameraSize.getWidth(), mCameraSize.getHeight(), mOutputFormat, 10);
+//        mImgReader = ImageReader.newInstance(mCameraSize.getWidth(), mCameraSize.getHeight(), mOutputFormat, 10);
+        mImgReader = ImageReader.newInstance(mCameraSize.getWidth(), mCameraSize.getHeight(), ImageFormat.JPEG, 10);
         mImgReader.setOnImageAvailableListener(mOnImageAvailableListener, mHandler);
         mReaderSurface = mImgReader.getSurface();
 
@@ -481,9 +440,11 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
     }
 
     private void setupCamera() {
+
+        Log.i(TAG, "setupCamera");
+
         mCameraManager = (CameraManager) getSystemService(CAMERA_SERVICE);
 
-        //Find the right camera device
         try {
             //Try to open the camera
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
@@ -498,24 +459,29 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
 
     private void closeCamera() {
 
+        Log.i(TAG, "closeCamera");
+
         if (null != mCaptureSession) {
             mCaptureSession.close();
-             mCaptureSession = null;
+            mCaptureSession = null;
         }
 
         if (null != mCameraDevice) {
             mCameraDevice.close();
-             mCameraDevice = null;
+            mCameraDevice = null;
         }
 
         if (null != mImgReader) {
             mImgReader.close();
-             mImgReader = null;
+            mImgReader = null;
         }
 
     }
 
     private void setupCaptureSession() throws CameraAccessException {
+
+        Log.i(TAG, "setupCaptureSession");
+
         mCameraRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
         mCameraRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, mCameraAF);
         mCameraRequestBuilder.addTarget(mPreviewSurface);
@@ -611,13 +577,22 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
 
     private CameraCaptureSession.CaptureCallback mSessionCaptureCallback = new CameraCaptureSession.CaptureCallback() {
         @Override
-        public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {}
+        public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
+            if (! mLogCameraReady) {
+                mLogCameraReady = true;
+                startLogging();
+            }}
     };
 
     // SESSION DESCRIPTION
     private void writeSessionDescription() {
+
+        Log.i(TAG, "writeSessionDescription");
+
         String sessionDescriptionName = mLoggingDir.getPath() + "/sessionDescription.txt";
+
         FileOutputStream outputStream;
+
         try {
             outputStream = new FileOutputStream(sessionDescriptionName);
 
@@ -633,84 +608,105 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
             string = "DATA_SET_TIME, " + (sessionTime) + " [s]" + System.lineSeparator();
             outputStream.write(string.getBytes());
 
-            string = "CAMERA_RESOLUTION, " + mCameraSize.getWidth() + "x" + mCameraSize.getHeight() + System.lineSeparator();
-            outputStream.write(string.getBytes());
+            if (mLogCamera) {
 
-            switch (mCameraAF) {
-                case (CameraCharacteristics.CONTROL_AF_MODE_AUTO):
-                    string = "CAMERA_AF_MODE, CONTROL_AF_MODE_AUTO" + System.lineSeparator();
-                    break;
-                case (CameraCharacteristics.CONTROL_AF_MODE_CONTINUOUS_PICTURE):
-                    string = "CAMERA_AF_MODE, CONTROL_AF_MODE_CONTINUOUS_PICTURE" + System.lineSeparator();
-                    break;
-                case (CameraCharacteristics.CONTROL_AF_MODE_CONTINUOUS_VIDEO):
-                    string = "CAMERA_AF_MODE, CONTROL_AF_MODE_CONTINUOUS_PICTURE" + System.lineSeparator();
-                    break;
-                case (CameraCharacteristics.CONTROL_AF_MODE_EDOF):
-                    string = "CAMERA_AF_MODE, CONTROL_AF_MODE_EDOF" + System.lineSeparator();
-                    break;
-                case (CameraCharacteristics.CONTROL_AF_MODE_MACRO):
-                    string = "CAMERA_AF_MODE, CONTROL_AF_MODE_MACRO" + System.lineSeparator();
-                    break;
-                case (CameraCharacteristics.CONTROL_AF_MODE_OFF):
-                    string = "CAMERA_AF_MODE, CONTROL_AF_MODE_OFF" + System.lineSeparator();
-                    break;
-            }
-            outputStream.write(string.getBytes());
+                string = "CAMERA_RESOLUTION, " + mCameraSize.getWidth() + "x" + mCameraSize.getHeight() + System.lineSeparator();
+                outputStream.write(string.getBytes());
 
-            CameraCharacteristics cc = mCameraManager.getCameraCharacteristics(mCameraId);
+                switch (mCameraAF) {
+                    case (CameraCharacteristics.CONTROL_AF_MODE_AUTO):
+                        string = "CAMERA_AF_MODE, CONTROL_AF_MODE_AUTO" + System.lineSeparator();
+                        break;
+                    case (CameraCharacteristics.CONTROL_AF_MODE_CONTINUOUS_PICTURE):
+                        string = "CAMERA_AF_MODE, CONTROL_AF_MODE_CONTINUOUS_PICTURE" + System.lineSeparator();
+                        break;
+                    case (CameraCharacteristics.CONTROL_AF_MODE_CONTINUOUS_VIDEO):
+                        string = "CAMERA_AF_MODE, CONTROL_AF_MODE_CONTINUOUS_PICTURE" + System.lineSeparator();
+                        break;
+                    case (CameraCharacteristics.CONTROL_AF_MODE_EDOF):
+                        string = "CAMERA_AF_MODE, CONTROL_AF_MODE_EDOF" + System.lineSeparator();
+                        break;
+                    case (CameraCharacteristics.CONTROL_AF_MODE_MACRO):
+                        string = "CAMERA_AF_MODE, CONTROL_AF_MODE_MACRO" + System.lineSeparator();
+                        break;
+                    case (CameraCharacteristics.CONTROL_AF_MODE_OFF):
+                        string = "CAMERA_AF_MODE, CONTROL_AF_MODE_OFF" + System.lineSeparator();
+                        break;
+                }
+                outputStream.write(string.getBytes());
 
-            switch (cc.get(CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE)) {
-                case (CameraMetadata.SENSOR_INFO_TIMESTAMP_SOURCE_UNKNOWN):
-                    string = "CAMERA_TIMESTAMP_SOURCE, SENSOR_INFO_TIMESTAMP_SOURCE_UNKNOWN" + System.lineSeparator();
-                    break;
-                case (CameraMetadata.SENSOR_INFO_TIMESTAMP_SOURCE_REALTIME):
-                    string = "CAMERA_TIMESTAMP_SOURCE, SENSOR_INFO_TIMESTAMP_SOURCE_REALTIME" + System.lineSeparator();
-                    break;
-            }
-            outputStream.write(string.getBytes());
+                string = "CAMERA_OUTPUT_FORMAT," + CameraSettingsActivity.getOutputFormatName(mOutputFormat) + System.lineSeparator();
+                outputStream.write(string.getBytes());
 
-            if (null != cc.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION)) {
-                string = "CAMERA_INTRINSIC_CALIBRATION, " + cc.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION).toString() + System.lineSeparator();
+                CameraCharacteristics cc = mCameraManager.getCameraCharacteristics(mCameraId);
+                switch (cc.get(CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE)) {
+                    case (CameraMetadata.SENSOR_INFO_TIMESTAMP_SOURCE_UNKNOWN):
+                        string = "CAMERA_TIMESTAMP_SOURCE, SENSOR_INFO_TIMESTAMP_SOURCE_UNKNOWN" + System.lineSeparator();
+                        break;
+                    case (CameraMetadata.SENSOR_INFO_TIMESTAMP_SOURCE_REALTIME):
+                        string = "CAMERA_TIMESTAMP_SOURCE, SENSOR_INFO_TIMESTAMP_SOURCE_REALTIME" + System.lineSeparator();
+                        break;
+                }
+                outputStream.write(string.getBytes());
+
+                if (null != cc.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION)) {
+                    string = "CAMERA_INTRINSIC_CALIBRATION, " + cc.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION).toString() + System.lineSeparator();
+                    outputStream.write(string.getBytes());
+                }
+
+                if (null != cc.get(CameraCharacteristics.LENS_POSE_TRANSLATION)) {
+                    string = "CAMERA_POSE_TRANSLATION, " + cc.get(CameraCharacteristics.LENS_POSE_TRANSLATION).toString() + System.lineSeparator();
+                    outputStream.write(string.getBytes());
+                }
+
+                if (null != cc.get(CameraCharacteristics.LENS_POSE_ROTATION)) {
+                    string = "CAMERA_POSE_ROTATION, " + cc.get(CameraCharacteristics.LENS_POSE_ROTATION).toString() + System.lineSeparator();
+                    outputStream.write(string.getBytes());
+                }
+
+                string = "CAMERA_N_IMAGES, " + (mCameraLogger.getnLogs() - 1) + " [" + ((float) (mCameraLogger.getnLogs() - 1) / sessionTime) + " Hz]" + System.lineSeparator();
                 outputStream.write(string.getBytes());
             }
 
-            if (null != cc.get(CameraCharacteristics.LENS_POSE_TRANSLATION)) {
-                string = "CAMERA_POSE_TRANSLATION, " + cc.get(CameraCharacteristics.LENS_POSE_TRANSLATION).toString() + System.lineSeparator();
+            if (mLogSensor) {
+                switch (mSensorDelay) {
+                    case (SensorManager.SENSOR_DELAY_UI):
+                        string = "SENSOR_DELAY, SENSOR_DELAY_UI" + System.lineSeparator();
+                        break;
+                    case (SensorManager.SENSOR_DELAY_NORMAL):
+                        string = "SENSOR_DELAY, SENSOR_DELAY_NORMAL" + System.lineSeparator();
+                        break;
+                    case (SensorManager.SENSOR_DELAY_GAME):
+                        string = "SENSOR_DELAY, SENSOR_DELAY_GAME" + System.lineSeparator();
+                        break;
+                    case (SensorManager.SENSOR_DELAY_FASTEST):
+                        string = "SENSOR_DELAY, SENSOR_DELAY_FASTEST" + System.lineSeparator();
+                        break;
+                }
                 outputStream.write(string.getBytes());
+
+                for (Map.Entry<Sensor, Logger> iSensorLogger : mSensorLoggerMap.entrySet()) {
+                    string = "SENSOR_NAME, " + iSensorLogger.getKey().getName() + System.lineSeparator();
+                    outputStream.write(string.getBytes());
+                    string = "N_READINGS, " + (iSensorLogger.getValue().getnLogs() - 1) + " [" + ((float) (iSensorLogger.getValue().getnLogs() - 1) / sessionTime) + " Hz]" + System.lineSeparator();
+                    outputStream.write(string.getBytes());
+                }
             }
 
-            if (null != cc.get(CameraCharacteristics.LENS_POSE_ROTATION)) {
-                string = "CAMERA_POSE_ROTATION, " + cc.get(CameraCharacteristics.LENS_POSE_ROTATION).toString() + System.lineSeparator();
-                outputStream.write(string.getBytes());
+            if (mLogCPRO) {
+                for (Map.Entry<String, Logger> iStringLogger : mRboard.getLoggersMap().entrySet()) {
+                    string = "SENSOR_NAME, " + "CPRO_R_" + iStringLogger.getKey() + System.lineSeparator();
+                    outputStream.write(string.getBytes());
+                    string = "N_READINGS, " + (iStringLogger.getValue().getnLogs() - 1) + " [" + ((float) (iStringLogger.getValue().getnLogs() - 1) / sessionTime) + " Hz]" + System.lineSeparator();
+                    outputStream.write(string.getBytes());
+                }
+                for (Map.Entry<String, Logger> iStringLogger : mLboard.getLoggersMap().entrySet()) {
+                    string = "SENSOR_NAME, " + "CPRO_L_" + iStringLogger.getKey() + System.lineSeparator();
+                    outputStream.write(string.getBytes());
+                    string = "N_READINGS, " + (iStringLogger.getValue().getnLogs() - 1) + " [" + ((float) (iStringLogger.getValue().getnLogs() - 1) / sessionTime) + " Hz]" + System.lineSeparator();
+                    outputStream.write(string.getBytes());
+                }
             }
-
-            string = "CAMERA_N_IMAGES, " + (mCameraLogger.getnLogs()-1) + " [" + ((float) (mCameraLogger.getnLogs()-1) / sessionTime) + " Hz]" + System.lineSeparator();
-            outputStream.write(string.getBytes());
-
-            switch (mSensorDelay) {
-                case (SensorManager.SENSOR_DELAY_UI):
-                    string = "SENSOR_DELAY, SENSOR_DELAY_UI" + System.lineSeparator();
-                    break;
-                case (SensorManager.SENSOR_DELAY_NORMAL):
-                    string = "SENSOR_DELAY, SENSOR_DELAY_NORMAL" + System.lineSeparator();
-                    break;
-                case (SensorManager.SENSOR_DELAY_GAME):
-                    string = "SENSOR_DELAY, SENSOR_DELAY_GAME" + System.lineSeparator();
-                    break;
-                case (SensorManager.SENSOR_DELAY_FASTEST):
-                    string = "SENSOR_DELAY, SENSOR_DELAY_FASTEST" + System.lineSeparator();
-                    break;
-            }
-            outputStream.write(string.getBytes());
-
-            for (Map.Entry<Sensor, Logger> iSensorLogger : mSensorLoggerMap.entrySet()) {
-                string = "SENSOR_NAME, " + iSensorLogger.getKey().getName() + System.lineSeparator();
-                outputStream.write(string.getBytes());
-                string = "N_READINGS, " + (iSensorLogger.getValue().getnLogs()-1) + " [" + ((float) (iSensorLogger.getValue().getnLogs()-1) / sessionTime) + " Hz]" + System.lineSeparator();
-                outputStream.write(string.getBytes());
-            }
-
             outputStream.close();
         } catch (Exception e) {
             e.printStackTrace();

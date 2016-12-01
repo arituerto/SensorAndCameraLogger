@@ -37,7 +37,6 @@ public class CPROSettingsActivity extends AppCompatActivity {
     private boolean mCPROGyroscope = true;
     private boolean mCPROBarometer = true;
     private boolean mCPROMagnetometer = false;
-    private boolean mCPROThermometer = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,12 +98,6 @@ public class CPROSettingsActivity extends AppCompatActivity {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {mCPROMagnetometer = isChecked;}
         });
-        tempSwitch = (Switch) findViewById(R.id.switchThermometer);
-        tempSwitch.setChecked(mCPROThermometer);
-        tempSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {mCPROThermometer = isChecked;}
-        });
 
         final Button okButton = (Button) findViewById(R.id.okButton);
         okButton.setOnClickListener(okClick);
@@ -133,7 +126,6 @@ public class CPROSettingsActivity extends AppCompatActivity {
             bundle.putBoolean("CPROGyroscope", mCPROGyroscope);
             bundle.putBoolean("CPROBarometer", mCPROBarometer);
             bundle.putBoolean("CPROMagnetometer", mCPROMagnetometer);
-            bundle.putBoolean("CPROThermometer", mCPROThermometer);
             returnIntent.putExtras(bundle);
             setResult(RESULT_OK, returnIntent);
             finish();

@@ -100,7 +100,7 @@ public class CameraSettingsActivity extends AppCompatActivity {
 
         String[] outFormatStringList = new String[mOutputFormatsList.length];
         for (int i = 0; i < mOutputFormatsList.length; i++) {
-            outFormatStringList[i] = getOutputFormatName(i);
+            outFormatStringList[i] = getOutputFormatName(mOutputFormatsList[i]);
         }
         Spinner outFormatSpinner = (Spinner) findViewById(R.id.spinnerOutputFormat);
         ArrayAdapter outFormatAdapter = new ArrayAdapter(this, R.layout.support_simple_spinner_dropdown_item, outFormatStringList);
@@ -147,10 +147,10 @@ public class CameraSettingsActivity extends AppCompatActivity {
                     camAFStringList[i] = "CONTROL_AF_MODE_AUTO";
                     break;
                 case (CameraCharacteristics.CONTROL_AF_MODE_CONTINUOUS_PICTURE):
-                    camAFStringList[i] = "CONTROL_AF_MODE_CONTINUOUS_PICTURE PICTURE";
+                    camAFStringList[i] = "CONTROL_AF_MODE_CONTINUOUS_PICTURE";
                     break;
                 case (CameraCharacteristics.CONTROL_AF_MODE_CONTINUOUS_VIDEO):
-                    camAFStringList[i] = "CONTROL_AF_MODE_CONTINUOUS_VIDEO VIDEO";
+                    camAFStringList[i] = "CONTROL_AF_MODE_CONTINUOUS_VIDEO";
                     break;
                 case (CameraCharacteristics.CONTROL_AF_MODE_MACRO):
                     camAFStringList[i] = "CONTROL_AF_MODE_MACRO";
@@ -202,7 +202,7 @@ public class CameraSettingsActivity extends AppCompatActivity {
         configureCameraPropsSpinners();
     }
 
-    private String getOutputFormatName(int i) {
+    public static String getOutputFormatName(int i) {
         String outString = "";
         switch (i) {
             case (ImageFormat.DEPTH16): outString = "DEPTH16"; break;

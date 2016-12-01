@@ -46,7 +46,6 @@ public class MainActivity extends AppCompatActivity {
     private boolean mCPROGyroscope;
     private boolean mCPROBarometer;
     private boolean mCPROMagnetometer;
-    private boolean mCPROThermometer;
 
     // LOGGING
     private String dataSetName;
@@ -170,7 +169,6 @@ public class MainActivity extends AppCompatActivity {
                     mCPROGyroscope = bundle.getBoolean("CPROGyroscope");
                     mCPROBarometer = bundle.getBoolean("CPROBarometer");
                     mCPROMagnetometer = bundle.getBoolean("CPROMagnetometer");
-                    mCPROThermometer = bundle.getBoolean("CPROThermometer");
                 }
                 break;
         }
@@ -209,7 +207,6 @@ public class MainActivity extends AppCompatActivity {
                 outBundle.putBoolean("CPROGyroscope", mCPROGyroscope);
                 outBundle.putBoolean("CPROBarometer", mCPROBarometer);
                 outBundle.putBoolean("CPROMagnetometer", mCPROMagnetometer);
-                outBundle.putBoolean("CPROThermometer", mCPROThermometer);
 
                 intent.putExtras(outBundle);
 
