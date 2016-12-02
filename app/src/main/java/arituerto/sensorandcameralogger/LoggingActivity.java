@@ -402,6 +402,21 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
     public void onAccuracyChanged(Sensor sensor, int accuracy) {}
 
     // CPRO Sensor functions
+    private CPROboardLog.CPROboardLogListener cprorListener = new CPROboardLog.CPROboardLogListener() {
+        @Override
+        public void onConfigured(boolean state) {
+            CheckBox cpror = (CheckBox) findViewById(R.id.checkBoxCPROR);
+            cpror.setChecked(state);
+        }
+    };
+    private CPROboardLog.CPROboardLogListener cprolListener = new CPROboardLog.CPROboardLogListener() {
+        @Override
+        public void onConfigured(boolean state) {
+            CheckBox cprol = (CheckBox) findViewById(R.id.checkBoxCPROL);
+            cprol.setChecked(state);
+        }
+    };
+
     @Override
     public void onCPROConfigured(int state, String boardID) {
 
