@@ -12,6 +12,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.RadioButton;
 import android.widget.Switch;
 
 public class MainActivity extends AppCompatActivity {
@@ -49,7 +50,6 @@ public class MainActivity extends AppCompatActivity {
 
     // LOGGING
     private String dataSetName;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

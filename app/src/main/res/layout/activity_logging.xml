@@ -11,9 +11,62 @@
     tools:context="arituerto.sensorandcameralogger.LoggingActivity">
 
     <TextureView
+        android:id="@+id/textureViewLogging"
+        android:layout_width="300dp"
+        android:layout_height="400dp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true" />
+
+    <Button
+        android:text="Button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerVertical="true"
+        android:id="@+id/buttonLog"
+        android:layout_above="@+id/textureViewLogging"
+        android:layout_centerHorizontal="true" />
+
+    <ProgressBar
+        style="?android:attr/progressBarStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/textureViewLogging"
         android:layout_centerHorizontal="true"
-        android:id="@+id/textureViewLogging" />
+        android:id="@+id/progressBarLogging" />
+
+    <CheckBox
+        android:text="Camera"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"
+        android:id="@+id/checkBoxCamera"
+        android:layout_toStartOf="@+id/buttonLog" />
+
+    <CheckBox
+        android:text="Phone Sensors"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/checkBoxSensors"
+        android:layout_below="@+id/checkBoxCamera"
+        android:layout_alignParentStart="true"
+        android:layout_toStartOf="@+id/buttonLog" />
+
+    <CheckBox
+        android:text="CPRO R"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:id="@+id/checkBoxCPROR"
+        android:layout_toEndOf="@+id/buttonLog" />
+
+    <CheckBox
+        android:text="CPRO L"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/checkBoxCPROR"
+        android:layout_alignParentEnd="true"
+        android:id="@+id/checkBoxCPROL"
+        android:layout_toEndOf="@+id/buttonLog" />
+
 </RelativeLayout>

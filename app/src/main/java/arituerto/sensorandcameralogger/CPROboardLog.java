@@ -1,7 +1,12 @@
 package arituerto.sensorandcameralogger;
 
+import android.app.Activity;
+import android.content.Context;
 import android.os.SystemClock;
 import android.util.Log;
+import android.widget.CheckBox;
+import android.widget.RadioButton;
+import android.widget.Toast;
 
 import com.mbientlab.metawear.AsyncOperation;
 import com.mbientlab.metawear.Message;
@@ -11,6 +16,8 @@ import com.mbientlab.metawear.UnsupportedModuleException;
 import com.mbientlab.metawear.data.CartesianFloat;
 import com.mbientlab.metawear.module.Bmi160Accelerometer;
 import com.mbientlab.metawear.module.Bmi160Gyro;
+import com.mbientlab.metawear.module.Bmm150Magnetometer;
+import com.mbientlab.metawear.module.Bmp280Barometer;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -36,7 +43,26 @@ public class CPROboardLog {
     private String boardID;
     private Map<String, Logger> mLoggersMap;
 
-    public CPROboardLog(String inputID, final MetaWearBoard board, File loggingDir) {
+    private boolean logAcc;
+    private boolean logStp;
+    private boolean logGyr;
+    private boolean logBar;
+    private boolean logMag;
+
+    public interface CPROboardLogListener {
+        public void onConfigured(boolean state);
+    }
+
+    private CPROboardLogListener listener;
+
+    public CPROboardLog(String inputID,
+                        final MetaWearBoard board,
+                        File loggingDir,
+                        boolean logAcc,
+                        boolean logStp,
+                        boolean logGyr,
+                        boolean logBar,
+                        boolean logMag) {
 
         Log.i(boardID, "CPROboardLog created");
 
@@ -44,6 +70,19 @@ public class CPROboardLog {
         this.board = board;
         this.mLoggersMap = new HashMap<String, Logger>();
         this.loggingDir = loggingDir;
+
+        this.logAcc = logAcc;
+        this.logStp = logStp;
+        this.logGyr = logGyr;
+        this.logBar = logBar;
+        this.logMag = logMag;
+
+        this.listener = null;
+
+    }
+
+    public void registerListener(CPROboardLogListener listener) {
+        this.listener = listener;
     }
 
     public void connect() {
@@ -53,15 +92,33 @@ public class CPROboardLog {
         board.setConnectionStateHandler(new MetaWearBoard.ConnectionStateHandler() {
             @Override
             public void connected() {
-                Log.i(boardID, "Meta Board R connected!");
-                configureAccelerometerAxisLogging();
-                configureAccelerometerStepDetectorLogging();
-                configureGyroscopeLogging();
+                Log.i(boardID, "Meta Board connected!");
+                if (logAcc) {
+                    configureAccelerometerAxisLogging();
+                }
+                if (logStp) {
+                    configureAccelerometerStepDetectorLogging();
+                }
+                if (logGyr) {
+                    configureGyroscopeLogging();
+                }
+                if (logBar) {
+                    configureBarometerLogging();
+                }
+                if (logMag) {
+                    configureMagnetometerLogging();
+                }
+                if (listener != null) {
+                    listener.onConfigured(true);
+                }
             }
 
             @Override
             public void failure(int status, Throwable error) {
-                Log.i(boardID, "Meta Board R failed to connect!");
+                Log.i(boardID, "Meta Board failed to connect!");
+                if (listener != null) {
+                    listener.onConfigured(false);
+                }
             }
         });
 
@@ -97,7 +154,7 @@ public class CPROboardLog {
         return mLoggersMap;
     }
 
-    public void configureAccelerometerAxisLogging() {
+    private void configureAccelerometerAxisLogging() {
 
         Log.i(boardID, "configureAccelerometerAxisLogging");
 
@@ -134,7 +191,7 @@ public class CPROboardLog {
                             result.subscribe(ACC_STRM, new RouteManager.MessageHandler() {
                                 @Override
                                 public void process(Message msg) {
-                                    Log.i(boardID, "Accelerometer reading" + msg.getData(CartesianFloat.class).toString());
+//                                    Log.i(boardID, "Accelerometer reading" + msg.getData(CartesianFloat.class).toString());
                                     if (loggingON) {
                                         String csvString = SystemClock.elapsedRealtimeNanos() + "," +
                                                 msg.getTimestamp().getTimeInMillis() + "," +
@@ -162,7 +219,7 @@ public class CPROboardLog {
         }
     }
 
-    public void configureAccelerometerStepDetectorLogging() {
+    private void configureAccelerometerStepDetectorLogging() {
 
         Log.i(boardID, "configureAccelerometerStepDetectorLogging");
 
@@ -173,7 +230,7 @@ public class CPROboardLog {
             mLoggersMap.put(STP_STRM, logger);
             try {
                 logger.log(csvFormat);
-                Log.i(boardID, "Step Detector logger OK");
+//                Log.i(boardID, "Step Detector logger OK");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -198,7 +255,7 @@ public class CPROboardLog {
                             result.subscribe(STP_STRM, new RouteManager.MessageHandler() {
                                 @Override
                                 public void process(Message msg) {
-                                    Log.i(boardID, "Step detected");
+//                                    Log.i(boardID, "Step detected");
                                     if (loggingON) {
                                         String csvString = SystemClock.elapsedRealtimeNanos() + "," +
                                                 msg.getTimestamp().getTimeInMillis() + "," +
@@ -224,7 +281,7 @@ public class CPROboardLog {
 
     }
 
-    public void configureGyroscopeLogging() {
+    private void configureGyroscopeLogging() {
 
         Log.i(boardID, "configureGyroscopeLogging");
 
@@ -263,7 +320,7 @@ public class CPROboardLog {
                             result.subscribe(GYR_STRM, new RouteManager.MessageHandler() {
                                 @Override
                                 public void process(Message msg) {
-                                    Log.i(boardID, "Gyroscope reading" + msg.getData(CartesianFloat.class).toString());
+//                                    Log.i(boardID, "Gyroscope reading" + msg.getData(CartesianFloat.class).toString());
                                     if (loggingON) {
                                         String csvString = SystemClock.elapsedRealtimeNanos() + "," +
                                                 msg.getTimestamp().getTimeInMillis() + "," +
@@ -285,6 +342,130 @@ public class CPROboardLog {
                     start();
         } catch (UnsupportedModuleException e) {
             Log.e(boardID, "No gyroscope present on this board", e);
+        }
+
+    }
+
+    private void configureBarometerLogging() {
+
+        Log.i(boardID, "configureBarometerLogging");
+
+        String loggerFileName = loggingDir.getPath() + "/sensor_" + boardID + "_" + BAR_STRM + "_log.csv";
+        String csvFormat = "// SYSTEM_TIME [ns], EVENT_TIMESTAMP [ms], EVENT_" + BAR_STRM + "_VALUES";
+        try {
+            Logger logger = new Logger(loggerFileName);
+            mLoggersMap.put(BAR_STRM, logger);
+            try {
+                logger.log(csvFormat);
+                Log.i(boardID, "Barometer logger OK");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        try {
+            // BMI160Accelerometer Axis sampling
+            board.getModule(Bmp280Barometer.class).
+                    configure().
+                    setPressureOversampling(Bmp280Barometer.OversamplingMode.STANDARD).
+                    commit();
+            board.getModule(Bmp280Barometer.class).
+                    routeData().
+                    fromAltitude().
+                    stream(BAR_STRM).
+                    commit().
+                    onComplete(new AsyncOperation.CompletionHandler<RouteManager>() {
+                        @Override
+                        public void success(RouteManager result) {
+                            Log.i(boardID, "Barometer Completion Handler OK");
+                            result.subscribe(BAR_STRM, new RouteManager.MessageHandler() {
+                                @Override
+                                public void process(Message msg) {
+//                                    Log.i(boardID, "Barometer reading" + msg.getData(Float.class).toString());
+                                    if (loggingON) {
+                                        String csvString = SystemClock.elapsedRealtimeNanos() + "," +
+                                                msg.getTimestamp().getTimeInMillis() + "," +
+                                                msg.getData(Float.class);
+                                        try {
+                                            mLoggersMap.get(BAR_STRM).log(csvString);
+                                        } catch (IOException e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    });
+            // START BMI160Accelerometer
+            board.getModule(Bmp280Barometer.class).
+                    start();
+        } catch (UnsupportedModuleException e) {
+            Log.e(boardID, "No barometer present on this board", e);
+        }
+
+    }
+
+    private void configureMagnetometerLogging() {
+
+        Log.i(boardID, "configureMagnetometerLogging");
+
+        String loggerFileName = loggingDir.getPath() + "/sensor_" + boardID + "_" + MAG_STRM + "_log.csv";
+        String csvFormat = "// SYSTEM_TIME [ns], EVENT_TIMESTAMP [ms], EVENT_" + MAG_STRM + "_VALUES";
+        try {
+            Logger logger = new Logger(loggerFileName);
+            mLoggersMap.put(MAG_STRM, logger);
+            try {
+                logger.log(csvFormat);
+                Log.i(boardID, "Magnetometer logger OK");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        try {
+            // BMI160Accelerometer Axis sampling
+            board.getModule(Bmm150Magnetometer.class).
+                    configureBFieldSampling().
+                    setOutputDataRate(Bmm150Magnetometer.OutputDataRate.ODR_10_HZ).
+                    commit();
+            board.getModule(Bmm150Magnetometer.class).
+                    routeData().
+                    fromBField().
+                    stream(MAG_STRM).
+                    commit().
+                    onComplete(new AsyncOperation.CompletionHandler<RouteManager>() {
+                        @Override
+                        public void success(RouteManager result) {
+                            Log.i(boardID, "Magnetometer Completion Handler OK");
+                            result.subscribe(MAG_STRM, new RouteManager.MessageHandler() {
+                                @Override
+                                public void process(Message msg) {
+//                                    Log.i(boardID, "Magnetometer reading" + msg.getData(CartesianFloat.class).toString());
+                                    if (loggingON) {
+                                        String csvString = SystemClock.elapsedRealtimeNanos() + "," +
+                                                msg.getTimestamp().getTimeInMillis() + "," +
+                                                msg.getData(CartesianFloat.class).x() + "," +
+                                                msg.getData(CartesianFloat.class).y() + "," +
+                                                msg.getData(CartesianFloat.class).z();
+                                        try {
+                                            mLoggersMap.get(MAG_STRM).log(csvString);
+                                        } catch (IOException e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    });
+            // START BMI160Accelerometer
+            board.getModule(Bmm150Magnetometer.class).
+                    enableBFieldSampling();
+            board.getModule(Bmm150Magnetometer.class).
+                    start();
+        } catch (UnsupportedModuleException e) {
+            Log.e(boardID, "No magnetometer present on this board", e);
         }
 
     }

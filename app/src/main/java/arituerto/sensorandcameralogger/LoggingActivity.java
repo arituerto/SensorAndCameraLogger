@@ -40,6 +40,12 @@ import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
+import android.view.View;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.ProgressBar;
+import android.widget.RadioButton;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import com.mbientlab.metawear.AsyncOperation;
@@ -80,13 +86,8 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
     private String mDataSetName;
 
     private boolean mLogSensor;
-    private boolean mLogSensorReady;
     private boolean mLogCamera;
-    private boolean mLogCameraReady;
     private boolean mLogCPRO;
-    private boolean mLogCPROReady;
-    private boolean mLogGPS = false;
-    private boolean mLogGPSReady = !mLogGPS;
 
     private SensorManager mSensorManager;
     List<Sensor> mSensorList;
@@ -112,15 +113,9 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
 
     private String mCPRO_Rmac;
     private String mCPRO_Lmac;
-    private boolean mCPROAccelerometer;
-    private boolean mCPROGyroscope;
-    private boolean mCPROBarometer;
-    private boolean mCPROMagnetometer;
     private MetaWearBleService.LocalBinder mServiceBinder;
     private CPROboardLog mRboard;
     private CPROboardLog mLboard;
-    private MetaWearBoard mBoard;
-    private Accelerometer mModule;
 
     //PREVIEW SURFACE
     private Surface mPreviewSurface;
@@ -130,6 +125,9 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
     // STOP ACTIVITY
     boolean mDoubleBackToExitPressedOnce = false;
 
+    // VISUAL
+    private ProgressBar loggingSpinner;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -138,31 +136,36 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_logging);
 
+        // VISUAL
+        loggingSpinner = (ProgressBar) findViewById(R.id.progressBarLogging);
+        loggingSpinner.setVisibility(View.INVISIBLE);
+
+        CheckBox sensorsOnButton = (CheckBox) findViewById(R.id.checkBoxSensors);
+        sensorsOnButton.setVisibility(View.INVISIBLE);
+        CheckBox cameraOnButton = (CheckBox) findViewById(R.id.checkBoxCamera);
+        cameraOnButton.setVisibility(View.INVISIBLE);
+        CheckBox cpro_rOnButton = (CheckBox) findViewById(R.id.checkBoxCPROR);
+        cpro_rOnButton.setVisibility(View.INVISIBLE);
+        CheckBox cpro_lOnButton = (CheckBox) findViewById(R.id.checkBoxCPROL);
+        cpro_lOnButton.setVisibility(View.INVISIBLE);
+
+        Button actionButton = (Button) findViewById(R.id.buttonLog);
+        actionButton.setText("START");
+        actionButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!mLoggingON) {
+                    Toast.makeText(getApplicationContext(), "LOGGING", Toast.LENGTH_LONG);
+                    v.setVisibility(View.INVISIBLE);
+                    loggingSpinner.setVisibility(View.VISIBLE);
+                    startLogging();
+                }
+            }
+        });
+
         // Get configuration data
         Bundle inBundle = this.getIntent().getExtras();
-
-        mDataSetName = inBundle.getString("dataSetName");
-
-        mLogSensor = inBundle.getBoolean("LogSensor");
-        mSensorDelay = inBundle.getInt("SensorDelay");
-        mSelectedSensorList = inBundle.getBooleanArray("SensorSelection");
-        mLogSensorReady = !mLogSensor;
-
-        mLogCamera = inBundle.getBoolean("LogCamera");
-        mCameraId = inBundle.getString("CameraId");
-        mCameraSize = inBundle.getSize("CameraSize");
-        mCameraAF = inBundle.getInt("CameraAF");
-        mOutputFormat = inBundle.getInt("OutputFormat");
-        mLogCameraReady = !mLogCamera;
-
-        mLogCPRO = inBundle.getBoolean("LogCPRO");
-        mCPRO_Rmac = inBundle.getString("CPRORmac");
-        mCPRO_Lmac = inBundle.getString("CPROLmac");
-        mCPROAccelerometer = inBundle.getBoolean("CPROAccelerometer");
-        mCPROGyroscope = inBundle.getBoolean("CPROGyroscope");
-        mCPROBarometer = inBundle.getBoolean("CPROBarometer");
-        mCPROMagnetometer = inBundle.getBoolean("CPROMagnetometer");
-        mLogCPROReady = !mLogCPRO;
+        readInBundle(inBundle);
 
         // Create Logging directory
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HHmmss");
@@ -181,16 +184,33 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
         }
 
         if (mLogSensor) {
+
+            sensorsOnButton.setVisibility(View.VISIBLE);
+            sensorsOnButton.setChecked(false);
+
             startSensorListenersAndLoggers();
         }
 
-//        if (mLogCPRO) {
+        if (mLogCPRO) {
+
+            cpro_rOnButton.setVisibility(View.VISIBLE);
+            cpro_rOnButton.setChecked(false);
+
+            cpro_lOnButton.setVisibility(View.VISIBLE);
+            cpro_lOnButton.setChecked(false);
+
             getApplicationContext().bindService(new Intent(this, MetaWearBleService.class),
                     this, Context.BIND_AUTO_CREATE);
-//        }
+        }
+
+        startCameraHandlerThread();
+        setupSurfaces(); // Chain reaction
 
         if (mLogCamera) {
-            startCameraHandlerThread();
+
+            cameraOnButton.setVisibility(View.VISIBLE);
+            cameraOnButton.setChecked(false);
+
             // Create Image Logging directory
             mCameraLoggingDir = new File(mLoggingDir.getPath() + "/images_" + mCameraSize.getWidth() + "x" + mCameraSize.getHeight());
             try {
@@ -209,7 +229,6 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             }
-            setupSurfaces(); // Chain reaction
         }
     }
 
@@ -219,27 +238,8 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
         Log.i(TAG, "onDestroy");
 
         super.onDestroy();
-        mLoggingON = false;
-        writeSessionDescription();
-        if (mLogSensor) {
-            stopSensorLoggers();
-            stopSensorListeners();
-        }
-        if (mLogCPRO) {
-            mRboard.disconnect();
-            mLboard.disconnect();
-            getApplicationContext().unbindService(this);
-        }
-        if (mLogCamera) {
-            try {
-                mCameraLogger.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            closeCamera();
-            stopCameraHandlerThread();
-        }
-        Log.i(TAG, "Logging STOP");
+
+        stopLogging();
     }
 
     @Override
@@ -258,17 +258,80 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
             public void run() {
                 mDoubleBackToExitPressedOnce=false;
             }
-        }, 2000);
+        }, 1000);
     }
 
-    // START LOGGING IF EVERYTHING IS READY
+    private void readInBundle(Bundle inBundle) {
+
+        mDataSetName = inBundle.getString("dataSetName");
+
+        mLogSensor = inBundle.getBoolean("LogSensor");
+        mSensorDelay = inBundle.getInt("SensorDelay");
+        mSelectedSensorList = inBundle.getBooleanArray("SensorSelection");
+
+        mLogCamera = inBundle.getBoolean("LogCamera");
+        mCameraId = inBundle.getString("CameraId");
+        mCameraSize = inBundle.getSize("CameraSize");
+        mCameraAF = inBundle.getInt("CameraAF");
+        mOutputFormat = inBundle.getInt("OutputFormat");
+
+        mLogCPRO = inBundle.getBoolean("LogCPRO");
+        mCPRO_Rmac = inBundle.getString("CPRORmac");
+        mCPRO_Lmac = inBundle.getString("CPROLmac");
+
+    }
+
+    // START/STOP LOGGING
     private void startLogging() {
-        mLoggingON = (mLogSensorReady & mLogCameraReady & mLogCPROReady & mLogGPSReady);
-        if (mLoggingON) {
-            mStartLoggingTime = SystemClock.elapsedRealtimeNanos();
-//            mRboard.activateLogging();
-            Log.i(TAG, "Logging START");
+
+        mStartLoggingTime = SystemClock.elapsedRealtimeNanos();
+
+        mLoggingON = true;
+
+        if (mLogCPRO) {
+            mRboard.activateLogging();
+            mLboard.activateLogging();
         }
+
+        Log.i(TAG, "Logging START");
+        Toast.makeText(getApplicationContext(), "LOGGING", Toast.LENGTH_LONG);
+    }
+
+    private void stopLogging() {
+
+        mLoggingON = false;
+
+        if (mLogCPRO) {
+            mRboard.deactivateLogging();
+            mLboard.deactivateLogging();
+        }
+
+        writeSessionDescription();
+
+        if (mLogSensor) {
+            stopSensorLoggers();
+            stopSensorListeners();
+        }
+
+        if (mLogCPRO) {
+            mRboard.disconnect();
+            mLboard.disconnect();
+            getApplicationContext().unbindService(this);
+        }
+
+        if (mLogCamera) {
+            try {
+                mCameraLogger.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            closeCamera();
+            stopCameraHandlerThread();
+        }
+
+        Log.i(TAG, "Logging STOP");
+        Toast.makeText(getApplicationContext(), "LOGGING STOPPED", Toast.LENGTH_LONG);
+
     }
 
     // SENSOR FUNCTIONS
@@ -301,8 +364,8 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
                 }
             }
         }
-        mLogSensorReady = true;
-        startLogging();
+        CheckBox sensorsCheckBox = (CheckBox) findViewById(R.id.checkBoxSensors);
+        sensorsCheckBox.setChecked(true);
     }
 
     private void stopSensorListeners() {
@@ -359,18 +422,40 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
         BluetoothManager bt = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
 
         BluetoothDevice deviceR = bt.getAdapter().getRemoteDevice(mCPRO_Rmac);
-        mRboard = new CPROboardLog("CPRO_R", mServiceBinder.getMetaWearBoard(deviceR), mLoggingDir);
+        mRboard = new CPROboardLog("CPRO_R",
+                mServiceBinder.getMetaWearBoard(deviceR),
+                mLoggingDir,
+                true,
+                true,
+                true,
+                true,
+                true);
+        mRboard.registerListener(new CPROboardLog.CPROboardLogListener() {
+            @Override
+            public void onConfigured(boolean state) {
+                CheckBox cpror = (CheckBox) findViewById(R.id.checkBoxCPROR);
+                cpror.setChecked(state);
+            }
+        });
         mRboard.connect();
 
         BluetoothDevice deviceL = bt.getAdapter().getRemoteDevice(mCPRO_Lmac);
-        mLboard = new CPROboardLog("CPRO_L", mServiceBinder.getMetaWearBoard(deviceL), mLoggingDir);
+        mLboard = new CPROboardLog("CPRO_L",
+                mServiceBinder.getMetaWearBoard(deviceL),
+                mLoggingDir,
+                true,
+                true,
+                true,
+                true,
+                true);
+        mLboard.registerListener(new CPROboardLog.CPROboardLogListener() {
+            @Override
+            public void onConfigured(boolean state) {
+                CheckBox cprol = (CheckBox) findViewById(R.id.checkBoxCPROL);
+                cprol.setChecked(state);
+            }
+        });
         mLboard.connect();
-
-        mRboard.activateLogging();
-        mLboard.activateLogging();
-
-        mLogCPROReady = true;
-        startLogging();
     }
 
     @Override
@@ -398,18 +483,18 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
         }
     }
 
-    // setupSurfaces() calls setupCamera() when the surface is ready that calls setupCaptureSession()
-    // when the camera is ready
     private void setupSurfaces() {
 
         Log.i(TAG, "setupSurfaces");
 
         // IMAGE READER
-        // TODO: Solve Image format issue
+        if (mLogCamera) {
+            // TODO: Solve Image format issue
 //        mImgReader = ImageReader.newInstance(mCameraSize.getWidth(), mCameraSize.getHeight(), mOutputFormat, 10);
-        mImgReader = ImageReader.newInstance(mCameraSize.getWidth(), mCameraSize.getHeight(), ImageFormat.JPEG, 10);
-        mImgReader.setOnImageAvailableListener(mOnImageAvailableListener, mHandler);
-        mReaderSurface = mImgReader.getSurface();
+            mImgReader = ImageReader.newInstance(mCameraSize.getWidth(), mCameraSize.getHeight(), ImageFormat.JPEG, 15);
+            mImgReader.setOnImageAvailableListener(mOnImageAvailableListener, mHandler);
+            mReaderSurface = mImgReader.getSurface();
+        }
 
         // PREVIEW SURFACE
         TextureView textureView = (TextureView) findViewById(R.id.textureViewLogging);
@@ -485,14 +570,20 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
         mCameraRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
         mCameraRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, mCameraAF);
         mCameraRequestBuilder.addTarget(mPreviewSurface);
-        mCameraRequestBuilder.addTarget(mReaderSurface);
+        if (mLogCamera) {
+            mCameraRequestBuilder.addTarget(mReaderSurface);
+        }
         mSurfaceList.clear();
         mSurfaceList.add(mPreviewSurface);
-        mSurfaceList.add(mReaderSurface);
+        if (mLogCamera) {
+            mSurfaceList.add(mReaderSurface);
+        }
         mCameraDevice.createCaptureSession(mSurfaceList, new CameraCaptureSession.StateCallback() {
             @Override
             public void onConfigured(CameraCaptureSession cameraCaptureSession) {
                 mCaptureSession = cameraCaptureSession;
+                CheckBox cameraCheckBox = (CheckBox) findViewById(R.id.checkBoxCamera);
+                cameraCheckBox.setChecked(true);
                 try {
                     mCameraRequest = mCameraRequestBuilder.build();
                     mCaptureSession.setRepeatingRequest(mCameraRequest, mSessionCaptureCallback, mHandler);
@@ -526,6 +617,8 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
                             e.printStackTrace();
                         }
                         processImage(img, imgFileName);
+                    } else {
+                        img.close();
                     }
                 }
             } catch (IllegalStateException e) {
@@ -577,11 +670,7 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
 
     private CameraCaptureSession.CaptureCallback mSessionCaptureCallback = new CameraCaptureSession.CaptureCallback() {
         @Override
-        public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
-            if (! mLogCameraReady) {
-                mLogCameraReady = true;
-                startLogging();
-            }}
+        public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {}
     };
 
     // SESSION DESCRIPTION
