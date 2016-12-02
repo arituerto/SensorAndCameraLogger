@@ -50,7 +50,7 @@ public class CPROboardLog {
     private boolean logMag;
 
     public interface CPROboardLogListener {
-        public void onConfigured(boolean state);
+        public void onCPROConfigured(int state, String boardID);
     }
 
     private CPROboardLogListener listener;
@@ -78,6 +78,9 @@ public class CPROboardLog {
         this.logMag = logMag;
 
         this.listener = null;
+        if (listener != null) {
+            listener.onCPROConfigured(0, boardID);
+        }
 
     }
 
@@ -109,7 +112,7 @@ public class CPROboardLog {
                     configureMagnetometerLogging();
                 }
                 if (listener != null) {
-                    listener.onConfigured(true);
+                    listener.onCPROConfigured(1, boardID);
                 }
             }
 
@@ -117,7 +120,7 @@ public class CPROboardLog {
             public void failure(int status, Throwable error) {
                 Log.i(boardID, "Meta Board failed to connect!");
                 if (listener != null) {
-                    listener.onConfigured(false);
+                    listener.onCPROConfigured(2, boardID);
                 }
             }
         });
@@ -191,7 +194,7 @@ public class CPROboardLog {
                             result.subscribe(ACC_STRM, new RouteManager.MessageHandler() {
                                 @Override
                                 public void process(Message msg) {
-//                                    Log.i(boardID, "Accelerometer reading" + msg.getData(CartesianFloat.class).toString());
+                                    Log.i(boardID, "Accelerometer reading" + msg.getData(CartesianFloat.class).toString());
                                     if (loggingON) {
                                         String csvString = SystemClock.elapsedRealtimeNanos() + "," +
                                                 msg.getTimestamp().getTimeInMillis() + "," +

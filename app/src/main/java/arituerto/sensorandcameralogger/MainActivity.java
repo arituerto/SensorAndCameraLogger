@@ -180,38 +180,35 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
 
-            if (mLogSensor | mLogCamera | mLogCPRO) {
+            EditText textEntry = (EditText) findViewById(R.id.inputDataSetName);
+            dataSetName = textEntry.getText().toString();
 
-                EditText textEntry = (EditText) findViewById(R.id.inputDataSetName);
-                dataSetName = textEntry.getText().toString();
+            Intent intent = new Intent(MainActivity.this, LoggingActivity.class);
+            Bundle outBundle = new Bundle();
 
-                Intent intent = new Intent(MainActivity.this, LoggingActivity.class);
-                Bundle outBundle = new Bundle();
+            outBundle.putString("dataSetName", dataSetName);
+            outBundle.putBoolean("LogSensor", mLogSensor);
+            outBundle.putInt("SensorDelay", mSensorDelay);
+            outBundle.putBooleanArray("SensorSelection", mSelectedSensorList);
 
-                outBundle.putString("dataSetName", dataSetName);
-                outBundle.putBoolean("LogSensor", mLogSensor);
-                outBundle.putInt("SensorDelay", mSensorDelay);
-                outBundle.putBooleanArray("SensorSelection", mSelectedSensorList);
+            outBundle.putBoolean("LogCamera", mLogCamera);
+            outBundle.putString("CameraId", mCameraId);
+            outBundle.putSize("CameraSize", mImageSize);
+            outBundle.putInt("CameraAF", mFocusMode);
+            outBundle.putInt("OutputFormat", mOutFormat);
 
-                outBundle.putBoolean("LogCamera", mLogCamera);
-                outBundle.putString("CameraId", mCameraId);
-                outBundle.putSize("CameraSize", mImageSize);
-                outBundle.putInt("CameraAF", mFocusMode);
-                outBundle.putInt("OutputFormat", mOutFormat);
+            outBundle.putBoolean("LogCPRO", mLogCPRO);
+            outBundle.putString("CPRORmac", mCPRO_Rmac);
+            outBundle.putString("CPROLmac", mCPRO_Lmac);
+            outBundle.putFloat("CPROfreq", mCPROfreq);
+            outBundle.putBoolean("CPROAccelerometer", mCPROAccelerometer);
+            outBundle.putBoolean("CPROGyroscope", mCPROGyroscope);
+            outBundle.putBoolean("CPROBarometer", mCPROBarometer);
+            outBundle.putBoolean("CPROMagnetometer", mCPROMagnetometer);
 
-                outBundle.putBoolean("LogCPRO", mLogCPRO);
-                outBundle.putString("CPRORmac", mCPRO_Rmac);
-                outBundle.putString("CPROLmac", mCPRO_Lmac);
-                outBundle.putFloat("CPROfreq", mCPROfreq);
-                outBundle.putBoolean("CPROAccelerometer", mCPROAccelerometer);
-                outBundle.putBoolean("CPROGyroscope", mCPROGyroscope);
-                outBundle.putBoolean("CPROBarometer", mCPROBarometer);
-                outBundle.putBoolean("CPROMagnetometer", mCPROMagnetometer);
+            intent.putExtras(outBundle);
 
-                intent.putExtras(outBundle);
-
-                startActivity(intent);
-            }
+            startActivity(intent);
         }
     };
 

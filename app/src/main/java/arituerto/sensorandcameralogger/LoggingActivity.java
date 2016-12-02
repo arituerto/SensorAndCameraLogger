@@ -42,32 +42,16 @@ import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.ProgressBar;
-import android.widget.RadioButton;
-import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import com.mbientlab.metawear.AsyncOperation;
-import com.mbientlab.metawear.Message;
 import com.mbientlab.metawear.MetaWearBleService;
-import com.mbientlab.metawear.MetaWearBoard;
-import com.mbientlab.metawear.RouteManager;
-import com.mbientlab.metawear.UnsupportedModuleException;
-import com.mbientlab.metawear.data.CartesianFloat;
-import com.mbientlab.metawear.module.Accelerometer;
-import com.mbientlab.metawear.module.Barometer;
-import com.mbientlab.metawear.module.Bmi160Accelerometer;
-import com.mbientlab.metawear.module.Bmi160Gyro;
-import com.mbientlab.metawear.module.Bmm150Magnetometer;
-import com.mbientlab.metawear.module.Bmp280Barometer;
-import com.mbientlab.metawear.module.Gyro;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -76,7 +60,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class LoggingActivity extends AppCompatActivity implements SensorEventListener, ServiceConnection {
+public class LoggingActivity extends AppCompatActivity implements SensorEventListener, ServiceConnection, CPROboardLog.CPROboardLogListener {
 
     private static String TAG = "LoggingActivity";
 
@@ -127,6 +111,10 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
 
     // VISUAL
     private ProgressBar loggingSpinner;
+    private TextView sensorsText;
+    private TextView cameraText;
+    private TextView cproRText;
+    private TextView cproLText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -140,14 +128,10 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
         loggingSpinner = (ProgressBar) findViewById(R.id.progressBarLogging);
         loggingSpinner.setVisibility(View.INVISIBLE);
 
-        CheckBox sensorsOnButton = (CheckBox) findViewById(R.id.checkBoxSensors);
-        sensorsOnButton.setVisibility(View.INVISIBLE);
-        CheckBox cameraOnButton = (CheckBox) findViewById(R.id.checkBoxCamera);
-        cameraOnButton.setVisibility(View.INVISIBLE);
-        CheckBox cpro_rOnButton = (CheckBox) findViewById(R.id.checkBoxCPROR);
-        cpro_rOnButton.setVisibility(View.INVISIBLE);
-        CheckBox cpro_lOnButton = (CheckBox) findViewById(R.id.checkBoxCPROL);
-        cpro_lOnButton.setVisibility(View.INVISIBLE);
+        cproRText = (TextView) findViewById(R.id.textCPROR);
+        cameraText = (TextView) findViewById(R.id.textCamera);
+        sensorsText = (TextView) findViewById(R.id.textSensors);
+        cproLText = (TextView) findViewById(R.id.textCPROL);
 
         Button actionButton = (Button) findViewById(R.id.buttonLog);
         actionButton.setText("START");
@@ -185,22 +169,27 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
 
         if (mLogSensor) {
 
-            sensorsOnButton.setVisibility(View.VISIBLE);
-            sensorsOnButton.setChecked(false);
+            sensorsText.setText("Sensors connecting");
 
             startSensorListenersAndLoggers();
+
+        } else {
+
+            sensorsText.setText("Sensors logging OFF");
         }
 
         if (mLogCPRO) {
 
-            cpro_rOnButton.setVisibility(View.VISIBLE);
-            cpro_rOnButton.setChecked(false);
-
-            cpro_lOnButton.setVisibility(View.VISIBLE);
-            cpro_lOnButton.setChecked(false);
+            cproRText.setText("CPRO R connecting");
+            cproLText.setText("CPRO L connecting");
 
             getApplicationContext().bindService(new Intent(this, MetaWearBleService.class),
                     this, Context.BIND_AUTO_CREATE);
+        } else {
+
+            cproRText.setText("CPRO R logging OFF");
+            cproLText.setText("CPRO L logging OFF");
+
         }
 
         startCameraHandlerThread();
@@ -208,8 +197,7 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
 
         if (mLogCamera) {
 
-            cameraOnButton.setVisibility(View.VISIBLE);
-            cameraOnButton.setChecked(false);
+            cameraText.setText("Camera connecting");
 
             // Create Image Logging directory
             mCameraLoggingDir = new File(mLoggingDir.getPath() + "/images_" + mCameraSize.getWidth() + "x" + mCameraSize.getHeight());
@@ -229,6 +217,9 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             }
+        } else {
+
+            cameraText.setText("Camera logging OFF");
         }
     }
 
@@ -364,8 +355,7 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
                 }
             }
         }
-        CheckBox sensorsCheckBox = (CheckBox) findViewById(R.id.checkBoxSensors);
-        sensorsCheckBox.setChecked(true);
+        sensorsText.setText("Sensors connected");
     }
 
     private void stopSensorListeners() {
@@ -413,6 +403,28 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
 
     // CPRO Sensor functions
     @Override
+    public void onCPROConfigured(int state, String boardID) {
+
+        switch (boardID) {
+            case "CPRO_R":
+                if (state == 1) {
+                    cproRText.setText("CPRO R connected");
+                } else if (state == 2) {
+                    cproRText.setText("CPRO R connection failed");
+                }
+                break;
+            case "CPRO_L":
+                if (state == 1) {
+                    cproLText.setText("CPRO L connected");
+                } else if (state == 2) {
+                    cproLText.setText("CPRO L connection failed");
+                }
+                break;
+
+        }
+    }
+
+    @Override
     public void onServiceConnected(ComponentName name, IBinder service) {
 
         Log.i(TAG, "MetaWear Service Connected");
@@ -430,13 +442,7 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
                 true,
                 true,
                 true);
-        mRboard.registerListener(new CPROboardLog.CPROboardLogListener() {
-            @Override
-            public void onConfigured(boolean state) {
-                CheckBox cpror = (CheckBox) findViewById(R.id.checkBoxCPROR);
-                cpror.setChecked(state);
-            }
-        });
+        mRboard.registerListener(this);
         mRboard.connect();
 
         BluetoothDevice deviceL = bt.getAdapter().getRemoteDevice(mCPRO_Lmac);
@@ -448,13 +454,7 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
                 true,
                 true,
                 true);
-        mLboard.registerListener(new CPROboardLog.CPROboardLogListener() {
-            @Override
-            public void onConfigured(boolean state) {
-                CheckBox cprol = (CheckBox) findViewById(R.id.checkBoxCPROL);
-                cprol.setChecked(state);
-            }
-        });
+        mLboard.registerListener(this);
         mLboard.connect();
     }
 
@@ -537,6 +537,9 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
                 return;
             }
             mCameraManager.openCamera(mCameraId, mCameraStateCallback, mHandler);
+            if (mLogCamera) {
+                cameraText.setText("Camera connected");
+            }
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -582,8 +585,6 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
             @Override
             public void onConfigured(CameraCaptureSession cameraCaptureSession) {
                 mCaptureSession = cameraCaptureSession;
-                CheckBox cameraCheckBox = (CheckBox) findViewById(R.id.checkBoxCamera);
-                cameraCheckBox.setChecked(true);
                 try {
                     mCameraRequest = mCameraRequestBuilder.build();
                     mCaptureSession.setRepeatingRequest(mCameraRequest, mSessionCaptureCallback, mHandler);
