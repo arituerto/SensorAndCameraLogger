@@ -1,12 +1,7 @@
 package arituerto.sensorandcameralogger;
 
-import android.app.Activity;
-import android.content.Context;
 import android.os.SystemClock;
 import android.util.Log;
-import android.widget.CheckBox;
-import android.widget.RadioButton;
-import android.widget.Toast;
 
 import com.mbientlab.metawear.AsyncOperation;
 import com.mbientlab.metawear.Message;
@@ -31,6 +26,15 @@ import java.util.Map;
 
 public class CPROboardLog {
 
+    public static int stateCreated = -1;
+    public static int stateConnecting = 0;
+    public static int stateConnected = 1;
+    public static int stateConnError = 2;
+    public static int stateReceiving = 3;
+    public static int stateDisconnected = 4;
+
+    private boolean stateReceivingBool = false;
+
     private static String ACC_STRM = "ACCELEROMETER";
     private static String STP_STRM = "STEPS";
     private static String GYR_STRM = "GYROSCOPE";
@@ -49,11 +53,11 @@ public class CPROboardLog {
     private boolean logBar;
     private boolean logMag;
 
-    public interface CPROboardLogListener {
-        public void onCPROConfigured(int state, String boardID);
-    }
-
     private CPROboardLogListener listener;
+
+    public interface CPROboardLogListener {
+        void onCPROStateChanged(int state, String boardID);
+    }
 
     public CPROboardLog(String inputID,
                         final MetaWearBoard board,
@@ -79,7 +83,7 @@ public class CPROboardLog {
 
         this.listener = null;
         if (listener != null) {
-            listener.onCPROConfigured(0, boardID);
+            listener.onCPROStateChanged(stateCreated, boardID);
         }
 
     }
@@ -112,7 +116,7 @@ public class CPROboardLog {
                     configureMagnetometerLogging();
                 }
                 if (listener != null) {
-                    listener.onCPROConfigured(1, boardID);
+                    listener.onCPROStateChanged(stateConnected, boardID);
                 }
             }
 
@@ -120,17 +124,25 @@ public class CPROboardLog {
             public void failure(int status, Throwable error) {
                 Log.i(boardID, "Meta Board failed to connect!");
                 if (listener != null) {
-                    listener.onCPROConfigured(2, boardID);
+                    listener.onCPROStateChanged(stateConnError, boardID);
                 }
             }
         });
 
         board.connect();
+
+        if (listener != null) {
+            listener.onCPROStateChanged(stateConnecting, boardID);
+        }
     }
 
     public void disconnect() {
 
         Log.i(boardID, "disconnect");
+
+        if (listener != null) {
+            listener.onCPROStateChanged(stateDisconnected, boardID);
+        }
 
         for (Map.Entry<String, Logger> iStringLogger : mLoggersMap.entrySet()) {
             try {
@@ -156,6 +168,8 @@ public class CPROboardLog {
     public Map<String, Logger> getLoggersMap() {
         return mLoggersMap;
     }
+
+    public String getBoardID() {return boardID;}
 
     private void configureAccelerometerAxisLogging() {
 
@@ -194,7 +208,12 @@ public class CPROboardLog {
                             result.subscribe(ACC_STRM, new RouteManager.MessageHandler() {
                                 @Override
                                 public void process(Message msg) {
-                                    Log.i(boardID, "Accelerometer reading" + msg.getData(CartesianFloat.class).toString());
+                                    if (!stateReceivingBool) {
+                                        stateReceivingBool = true;
+                                        if (listener != null) {
+                                            listener.onCPROStateChanged(stateReceiving, boardID);
+                                        }
+                                    }
                                     if (loggingON) {
                                         String csvString = SystemClock.elapsedRealtimeNanos() + "," +
                                                 msg.getTimestamp().getTimeInMillis() + "," +
@@ -258,7 +277,12 @@ public class CPROboardLog {
                             result.subscribe(STP_STRM, new RouteManager.MessageHandler() {
                                 @Override
                                 public void process(Message msg) {
-//                                    Log.i(boardID, "Step detected");
+                                    if (!stateReceivingBool) {
+                                        stateReceivingBool = true;
+                                        if (listener != null) {
+                                            listener.onCPROStateChanged(stateReceiving, boardID);
+                                        }
+                                    }
                                     if (loggingON) {
                                         String csvString = SystemClock.elapsedRealtimeNanos() + "," +
                                                 msg.getTimestamp().getTimeInMillis() + "," +
@@ -323,7 +347,12 @@ public class CPROboardLog {
                             result.subscribe(GYR_STRM, new RouteManager.MessageHandler() {
                                 @Override
                                 public void process(Message msg) {
-//                                    Log.i(boardID, "Gyroscope reading" + msg.getData(CartesianFloat.class).toString());
+                                    if (!stateReceivingBool) {
+                                        stateReceivingBool = true;
+                                        if (listener != null) {
+                                            listener.onCPROStateChanged(stateReceiving, boardID);
+                                        }
+                                    }
                                     if (loggingON) {
                                         String csvString = SystemClock.elapsedRealtimeNanos() + "," +
                                                 msg.getTimestamp().getTimeInMillis() + "," +
@@ -385,7 +414,12 @@ public class CPROboardLog {
                             result.subscribe(BAR_STRM, new RouteManager.MessageHandler() {
                                 @Override
                                 public void process(Message msg) {
-//                                    Log.i(boardID, "Barometer reading" + msg.getData(Float.class).toString());
+                                    if (!stateReceivingBool) {
+                                        stateReceivingBool = true;
+                                        if (listener != null) {
+                                            listener.onCPROStateChanged(stateReceiving, boardID);
+                                        }
+                                    }
                                     if (loggingON) {
                                         String csvString = SystemClock.elapsedRealtimeNanos() + "," +
                                                 msg.getTimestamp().getTimeInMillis() + "," +
@@ -445,7 +479,12 @@ public class CPROboardLog {
                             result.subscribe(MAG_STRM, new RouteManager.MessageHandler() {
                                 @Override
                                 public void process(Message msg) {
-//                                    Log.i(boardID, "Magnetometer reading" + msg.getData(CartesianFloat.class).toString());
+                                    if (!stateReceivingBool) {
+                                        stateReceivingBool = true;
+                                        if (listener != null) {
+                                            listener.onCPROStateChanged(stateReceiving, boardID);
+                                        }
+                                    }
                                     if (loggingON) {
                                         String csvString = SystemClock.elapsedRealtimeNanos() + "," +
                                                 msg.getTimestamp().getTimeInMillis() + "," +

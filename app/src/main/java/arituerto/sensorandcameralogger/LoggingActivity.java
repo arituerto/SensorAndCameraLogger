@@ -8,10 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
-import android.graphics.PixelFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -401,41 +398,28 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {}
 
-    // CPRO Sensor functions
-    private CPROboardLog.CPROboardLogListener cprorListener = new CPROboardLog.CPROboardLogListener() {
-        @Override
-        public void onConfigured(boolean state) {
-            CheckBox cpror = (CheckBox) findViewById(R.id.checkBoxCPROR);
-            cpror.setChecked(state);
-        }
-    };
-    private CPROboardLog.CPROboardLogListener cprolListener = new CPROboardLog.CPROboardLogListener() {
-        @Override
-        public void onConfigured(boolean state) {
-            CheckBox cprol = (CheckBox) findViewById(R.id.checkBoxCPROL);
-            cprol.setChecked(state);
-        }
-    };
-
     @Override
-    public void onCPROConfigured(int state, String boardID) {
+    public void onCPROStateChanged(int state, String boardID) {
 
-        switch (boardID) {
-            case "CPRO_R":
-                if (state == 1) {
-                    cproRText.setText("CPRO R connected");
-                } else if (state == 2) {
-                    cproRText.setText("CPRO R connection failed");
-                }
-                break;
-            case "CPRO_L":
-                if (state == 1) {
-                    cproLText.setText("CPRO L connected");
-                } else if (state == 2) {
-                    cproLText.setText("CPRO L connection failed");
-                }
-                break;
+        TextView textView;
+        if (boardID == mRboard.getBoardID()) {
+            textView = cproRText;
+        } else {
+            textView = cproLText;
+        }
 
+        if (state == CPROboardLog.stateCreated) {
+            textView.setText(boardID + " created");
+        } else if (state == CPROboardLog.stateConnecting) {
+            textView.setText(boardID + " connecting");
+        } else if (state == CPROboardLog.stateConnected) {
+            textView.setText(boardID + " connected");
+        } else if (state == CPROboardLog.stateConnError) {
+            textView.setText(boardID + " connection error");
+        } else if (state == CPROboardLog.stateReceiving) {
+            textView.setText(boardID + " receiving data");
+        } else if (state == CPROboardLog.stateDisconnected) {
+            textView.setText(boardID + " disconnected");
         }
     }
 
