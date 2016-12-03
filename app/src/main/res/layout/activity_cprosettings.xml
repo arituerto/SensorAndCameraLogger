@@ -41,44 +41,6 @@
         android:textSize="18sp"
         android:textAlignment="center" />
 
-    <SeekBar
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/seekBarFreq"
-        android:layout_below="@+id/editTextCPRO_Lmac"
-        android:layout_marginTop="53dp"
-        android:layout_alignStart="@+id/editTextCPRO_Lmac"
-        android:max="100"
-        android:layout_toStartOf="@+id/textViewFreq" />
-
-    <TextView
-        android:text="CPRO Frequency"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignTop="@+id/seekBarFreq"
-        android:id="@+id/textView5"
-        android:layout_alignParentStart="true"
-        android:layout_toStartOf="@+id/seekBarFreq"
-        android:textAlignment="center" />
-
-    <Switch
-        android:text="Accelerometer"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/switchAccelerometer"
-        android:layout_below="@+id/seekBarFreq"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="56dp" />
-
-    <Switch
-        android:text="Gyroscope"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/switchGyroscope"
-        android:layout_below="@+id/switchAccelerometer"
-        android:layout_alignStart="@+id/switchAccelerometer"
-        android:layout_alignEnd="@+id/switchAccelerometer" />
-
     <EditText
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -101,40 +63,5 @@
         android:layout_alignBottom="@+id/editTextCPRO_Lmac"
         android:layout_alignParentStart="true"
         android:layout_toStartOf="@+id/editTextCPRO_Lmac" />
-
-    <Switch
-        android:text="Magnetometer"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/switchMagnetometer"
-        android:layout_below="@+id/switchGyroscope"
-        android:layout_alignStart="@+id/switchGyroscope"
-        android:layout_alignEnd="@+id/switchGyroscope" />
-
-    <Switch
-        android:text="Barometer"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/switchBarometer"
-        android:layout_below="@+id/switchMagnetometer"
-        android:layout_alignStart="@+id/switchMagnetometer"
-        android:layout_alignEnd="@+id/switchMagnetometer" />
-
-    <Switch
-        android:text="Thermometer"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/switchBarometer"
-        android:layout_alignStart="@+id/switchBarometer"
-        android:id="@+id/switchThermometer"
-        android:layout_alignEnd="@+id/switchBarometer" />
-
-    <TextView
-        android:text="TextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignTop="@+id/seekBarFreq"
-        android:layout_alignParentEnd="true"
-        android:id="@+id/textViewFreq" />
 
 </RelativeLayout>

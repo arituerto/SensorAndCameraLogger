@@ -7,6 +7,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
@@ -22,6 +23,7 @@ import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.TotalCaptureResult;
+import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Build;
@@ -69,6 +71,8 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
     private boolean mLogSensor;
     private boolean mLogCamera;
     private boolean mLogCPRO;
+
+    private boolean sensorsReceiving = false;
 
     private SensorManager mSensorManager;
     List<Sensor> mSensorList;
@@ -136,7 +140,7 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
             @Override
             public void onClick(View v) {
                 if (!mLoggingON) {
-                    Toast.makeText(getApplicationContext(), "LOGGING", Toast.LENGTH_LONG);
+                    Toast.makeText(getApplicationContext(), "LOGGING", Toast.LENGTH_LONG).show();
                     v.setVisibility(View.INVISIBLE);
                     loggingSpinner.setVisibility(View.VISIBLE);
                     startLogging();
@@ -146,7 +150,7 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
 
         // Get configuration data
         Bundle inBundle = this.getIntent().getExtras();
-        readInBundle(inBundle);
+        readPreferences();
 
         // Create Logging directory
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HHmmss");
@@ -165,37 +169,26 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
         }
 
         if (mLogSensor) {
-
             sensorsText.setText("Sensors connecting");
-
             startSensorListenersAndLoggers();
-
         } else {
-
             sensorsText.setText("Sensors logging OFF");
         }
 
         if (mLogCPRO) {
-
             cproRText.setText("CPRO R connecting");
             cproLText.setText("CPRO L connecting");
-
             getApplicationContext().bindService(new Intent(this, MetaWearBleService.class),
                     this, Context.BIND_AUTO_CREATE);
         } else {
-
             cproRText.setText("CPRO R logging OFF");
             cproLText.setText("CPRO L logging OFF");
-
         }
 
         startCameraHandlerThread();
         setupSurfaces(); // Chain reaction
-
         if (mLogCamera) {
-
             cameraText.setText("Camera connecting");
-
             // Create Image Logging directory
             mCameraLoggingDir = new File(mLoggingDir.getPath() + "/images_" + mCameraSize.getWidth() + "x" + mCameraSize.getHeight());
             try {
@@ -215,18 +208,14 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
                 e.printStackTrace();
             }
         } else {
-
             cameraText.setText("Camera logging OFF");
         }
     }
 
     @Override
     protected void onDestroy() {
-
         Log.i(TAG, "onDestroy");
-
         super.onDestroy();
-
         stopLogging();
     }
 
@@ -236,12 +225,9 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
             super.onBackPressed();
             return;
         }
-
         this.mDoubleBackToExitPressedOnce = true;
         Toast.makeText(this, "Please click BACK again to exit", Toast.LENGTH_SHORT).show();
-
         new Handler().postDelayed(new Runnable() {
-
             @Override
             public void run() {
                 mDoubleBackToExitPressedOnce=false;
@@ -249,64 +235,67 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
         }, 1000);
     }
 
-    private void readInBundle(Bundle inBundle) {
+    private void readPreferences() {
 
-        mDataSetName = inBundle.getString("dataSetName");
+        // Main Preferences
+        SharedPreferences mainPrefs = getSharedPreferences("mainPreferences", MODE_PRIVATE);
+        mLogSensor = mainPrefs.getBoolean("sensorLogging", false);
+        mLogCamera = mainPrefs.getBoolean("cameraLogging", false);
+        mLogCPRO = mainPrefs.getBoolean("cproLogging", false);
+        mDataSetName = mainPrefs.getString("dataSetName", "test");
 
-        mLogSensor = inBundle.getBoolean("LogSensor");
-        mSensorDelay = inBundle.getInt("SensorDelay");
-        mSelectedSensorList = inBundle.getBooleanArray("SensorSelection");
+        // CAMERA SETTINGS
+        SharedPreferences cameraPrefs = getSharedPreferences("CameraPrefs", MODE_PRIVATE);
+        mCameraId = cameraPrefs.getString(CameraSettingsActivity.CAMID, null);
+        mOutputFormat = cameraPrefs.getInt(CameraSettingsActivity.FORMAT, -1);
+        int sizePos = cameraPrefs.getInt(CameraSettingsActivity.SIZE, -1);
+        try {
+            mCameraSize = ((CameraManager) getSystemService(CAMERA_SERVICE)).getCameraCharacteristics(mCameraId)
+                    .get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+                    .getOutputSizes(mOutputFormat)[sizePos];
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+        mCameraAF = cameraPrefs.getInt(CameraSettingsActivity.FOCUS, -1);
 
-        mLogCamera = inBundle.getBoolean("LogCamera");
-        mCameraId = inBundle.getString("CameraId");
-        mCameraSize = inBundle.getSize("CameraSize");
-        mCameraAF = inBundle.getInt("CameraAF");
-        mOutputFormat = inBundle.getInt("OutputFormat");
+        // SENSOR SETTINGS
+        SharedPreferences sensorsPrefs = getSharedPreferences("SensorPrefs", MODE_PRIVATE);
+        mSelectedSensorList = SensorSettingsActivity.loadBooleanArray(SensorSettingsActivity.SNSSELECTION, sensorsPrefs);
+        mSensorDelay = sensorsPrefs.getInt(SensorSettingsActivity.SNSDELAY, SensorManager.SENSOR_DELAY_NORMAL);
 
-        mLogCPRO = inBundle.getBoolean("LogCPRO");
-        mCPRO_Rmac = inBundle.getString("CPRORmac");
-        mCPRO_Lmac = inBundle.getString("CPROLmac");
-
+        // CPRO SETTINGS
+        SharedPreferences cproPrefs = getSharedPreferences("cproPrefs", MODE_PRIVATE);
+        mCPRO_Rmac = cproPrefs.getString(CPROSettingsActivity.CPRORMAC, "D3:27:08:FD:69:78");
+        mCPRO_Lmac = cproPrefs.getString(CPROSettingsActivity.CPROLMAC, "D0:72:37:14:3B:15");
     }
 
     // START/STOP LOGGING
     private void startLogging() {
-
         mStartLoggingTime = SystemClock.elapsedRealtimeNanos();
-
         mLoggingON = true;
-
         if (mLogCPRO) {
             mRboard.activateLogging();
             mLboard.activateLogging();
         }
-
         Log.i(TAG, "Logging START");
-        Toast.makeText(getApplicationContext(), "LOGGING", Toast.LENGTH_LONG);
     }
 
     private void stopLogging() {
-
         mLoggingON = false;
-
         if (mLogCPRO) {
             mRboard.deactivateLogging();
             mLboard.deactivateLogging();
         }
-
         writeSessionDescription();
-
         if (mLogSensor) {
             stopSensorLoggers();
             stopSensorListeners();
         }
-
         if (mLogCPRO) {
             mRboard.disconnect();
             mLboard.disconnect();
             getApplicationContext().unbindService(this);
         }
-
         if (mLogCamera) {
             try {
                 mCameraLogger.close();
@@ -316,9 +305,8 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
             closeCamera();
             stopCameraHandlerThread();
         }
-
         Log.i(TAG, "Logging STOP");
-        Toast.makeText(getApplicationContext(), "LOGGING STOPPED", Toast.LENGTH_LONG);
+        Toast.makeText(getApplicationContext(), "LOGGING STOPPED", Toast.LENGTH_LONG).show();
 
     }
 
@@ -356,30 +344,29 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
     }
 
     private void stopSensorListeners() {
-
         Log.i(TAG, "stopSensorListeners");
-
         if (null != mSensorManager) {
             mSensorManager.unregisterListener(this);
         }
     }
 
     private void stopSensorLoggers() {
-
         Log.i(TAG, "stopSensorLoggers");
-
         for (Map.Entry<Sensor, Logger> iLogger : mSensorLoggerMap.entrySet()) {
             try {
                 iLogger.getValue().close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
         }
     }
 
     @Override
     public void onSensorChanged(SensorEvent event) {
+        if (! sensorsReceiving) {
+            sensorsReceiving = true;
+            sensorsText.setText("Sensors receiving");
+        }
         if (mLoggingON) {
             Sensor key = event.sensor;
             Logger sensorLogger = mSensorLoggerMap.get(key);
@@ -489,7 +476,6 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
         // IMAGE READER
         if (mLogCamera) {
             // TODO: Solve Image format issue
-//        mImgReader = ImageReader.newInstance(mCameraSize.getWidth(), mCameraSize.getHeight(), mOutputFormat, 10);
             mImgReader = ImageReader.newInstance(mCameraSize.getWidth(), mCameraSize.getHeight(), ImageFormat.JPEG, 15);
             mImgReader.setOnImageAvailableListener(mOnImageAvailableListener, mHandler);
             mReaderSurface = mImgReader.getSurface();

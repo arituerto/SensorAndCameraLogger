@@ -1,6 +1,7 @@
 package arituerto.sensorandcameralogger;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.support.v7.app.AppCompatActivity;
@@ -33,11 +34,50 @@ public class SensorSettingsActivity extends AppCompatActivity {
             "SENSOR_DELAY_GAME",
             "SENSOR_DELAY_FASTEST"};
 
+    public static String SNSSELECTION = "sensorSelection";
+    public static String SNSDELAY = "sensorDelay";
+
+    private SharedPreferences sharedPreferences;
+
     // SENSORS
     private SensorManager mSensorManager;
     private ArrayList<String> mNameSensorList;
     private boolean[] mSelectedSensorList;
-    int sensorDelay = SensorManager.SENSOR_DELAY_NORMAL;
+    private int mSensorDelay;
+
+    public String getSensorDelayName(int i) {
+        String outString = "";
+        switch (i) {
+            case (SensorManager.SENSOR_DELAY_UI): outString =  "SENSOR_DELAY_UI"; break;
+            case (SensorManager.SENSOR_DELAY_NORMAL): outString =  "SENSOR_DELAY_NORMAL"; break;
+            case (SensorManager.SENSOR_DELAY_GAME): outString =  "SENSOR_DELAY_GAME"; break;
+            case (SensorManager.SENSOR_DELAY_FASTEST): outString =  "SENSOR_DELAY_FASTEST"; break;
+        }
+        return outString;
+    }
+
+    public static void storeBooleanArray(String arrayName, boolean[] array, SharedPreferences sharedPreferences) {
+
+        sharedPreferences.edit().putInt(arrayName +"_size", array.length).commit();
+
+        for(int i=0;i<array.length;i++) {
+            sharedPreferences.edit().putBoolean(arrayName + "_" + i, array[i]).commit();
+        }
+    }
+
+    public static boolean[] loadBooleanArray(String arrayName, SharedPreferences sharedPreferences) {
+
+        boolean[] array = null;
+
+        if (sharedPreferences.contains(arrayName + "_size")) {
+            int size = sharedPreferences.getInt(arrayName + "_size", 0);
+            array = new boolean[size];
+            for (int i = 0; i < size; i++)
+                array[i] = sharedPreferences.getBoolean(arrayName + "_" + i, false);
+        }
+
+        return array;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,66 +93,76 @@ public class SensorSettingsActivity extends AppCompatActivity {
         List<Sensor> sensorList = mSensorManager.getSensorList(Sensor.TYPE_ALL);
 
         mNameSensorList = new ArrayList<String>();
-        mSelectedSensorList = new boolean[sensorList.size()];
-
         for (int i = 0; i < sensorList.size(); i++) {
             Sensor iSensor = sensorList.get(i);
-            int sensorType = iSensor.getType();
             String sensorString = iSensor.getName() +
                     "\n" +
-                    iSensor.getStringType().split("\\.")[iSensor.getStringType().split("\\.").length-1].toUpperCase();
+                    iSensor.getStringType().split("\\.")[iSensor.getStringType().split("\\.").length - 1].toUpperCase();
             mNameSensorList.add(sensorString);
-            switch (sensorType) {
-                case Sensor.TYPE_ACCELEROMETER:
-                    mSelectedSensorList[i] = true;
-                    break;
-                case Sensor.TYPE_GYROSCOPE:
-                    mSelectedSensorList[i] = true;
-                    break;
-                case Sensor.TYPE_MAGNETIC_FIELD:
-                    mSelectedSensorList[i] = true;
-                    break;
-                case Sensor.TYPE_ROTATION_VECTOR:
-                    mSelectedSensorList[i] = true;
-                    break;
-                case Sensor.TYPE_GAME_ROTATION_VECTOR:
-                    mSelectedSensorList[i] = true;
-                    break;
-                case Sensor.TYPE_GRAVITY:
-                    mSelectedSensorList[i] = true;
-                    break;
-                case Sensor.TYPE_LINEAR_ACCELERATION:
-                    mSelectedSensorList[i] = true;
-                    break;
-                case Sensor.TYPE_PRESSURE:
-                    mSelectedSensorList[i] = true;
-                    break;
-                case Sensor.TYPE_STEP_COUNTER:
-                    mSelectedSensorList[i] = true;
-                    break;
-                case Sensor.TYPE_STEP_DETECTOR:
-                    mSelectedSensorList[i] = true;
-                    break;
-                default:
-                    mSelectedSensorList[i] = false;
-                    break;
+        }
+
+        sharedPreferences = getSharedPreferences("SensorPrefs", MODE_PRIVATE);
+        mSelectedSensorList = loadBooleanArray(SNSSELECTION, sharedPreferences);
+        mSensorDelay = sharedPreferences.getInt(SNSDELAY, SensorManager.SENSOR_DELAY_NORMAL);
+
+        if (mSelectedSensorList == null) {
+
+            mSelectedSensorList = new boolean[sensorList.size()];
+
+            for (int i = 0; i < sensorList.size(); i++) {
+                Sensor iSensor = sensorList.get(i);
+                int sensorType = iSensor.getType();
+                switch (sensorType) {
+                    case Sensor.TYPE_ACCELEROMETER:
+                        mSelectedSensorList[i] = true;
+                        break;
+                    case Sensor.TYPE_GYROSCOPE:
+                        mSelectedSensorList[i] = true;
+                        break;
+                    case Sensor.TYPE_MAGNETIC_FIELD:
+                        mSelectedSensorList[i] = true;
+                        break;
+                    case Sensor.TYPE_ROTATION_VECTOR:
+                        mSelectedSensorList[i] = true;
+                        break;
+                    case Sensor.TYPE_GAME_ROTATION_VECTOR:
+                        mSelectedSensorList[i] = true;
+                        break;
+                    case Sensor.TYPE_GRAVITY:
+                        mSelectedSensorList[i] = true;
+                        break;
+                    case Sensor.TYPE_LINEAR_ACCELERATION:
+                        mSelectedSensorList[i] = true;
+                        break;
+                    case Sensor.TYPE_PRESSURE:
+                        mSelectedSensorList[i] = true;
+                        break;
+                    case Sensor.TYPE_STEP_COUNTER:
+                        mSelectedSensorList[i] = true;
+                        break;
+                    case Sensor.TYPE_STEP_DETECTOR:
+                        mSelectedSensorList[i] = true;
+                        break;
+                    default:
+                        mSelectedSensorList[i] = false;
+                        break;
+                }
             }
         }
 
         Spinner spinner = (Spinner) findViewById(R.id.spinnerSensorDelay);
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, R.layout.support_simple_spinner_dropdown_item);
-        for (int i = 0; i < sensorDelayNameArray.length; i++) {
-            adapter.add(sensorDelayNameArray[i]);
+        for (int i = 0; i < sensorDelayArray.length; i++) {
+            adapter.add(getSensorDelayName(sensorDelayArray[i]));
         }
         spinner.setAdapter(adapter);
+        spinner.setSelection(adapter.getPosition(getSensorDelayName(mSensorDelay)));
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-                sensorDelay = sensorDelayArray[i];
-                Log.i(TAG, "Sensor delay: " + sensorDelayNameArray[i]);
+                Log.i(TAG, "Sensor delay: " + getSensorDelayName(sensorDelayArray[i]));
+                mSensorDelay = sensorDelayArray[i];
             }
-            public void onNothingSelected(AdapterView<?> adapterView) {
-                sensorDelay = SensorManager.SENSOR_DELAY_NORMAL;
-            }
+            public void onNothingSelected(AdapterView<?> adapterView) {}
         });
 
         LinearLayout linearLayout = (LinearLayout) findViewById(R.id.sensorLinearLayout);
@@ -123,22 +173,17 @@ public class SensorSettingsActivity extends AppCompatActivity {
             checkBox.setId(i);
             if (mSelectedSensorList[i]) {
                 checkBox.setChecked(true);
-                Log.i(TAG, iSensor + " STARTS CHECKED");
             } else {
                 checkBox.setChecked(false);
-                Log.i(TAG, iSensor + " STARTS UNCHECKED");
             }
             checkBox.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
                     Boolean checked = ((CheckBox) view).isChecked();
                     int checkBoxId = view.getId();
-                    String SensorName = mNameSensorList.get(checkBoxId);
                     if (checked) {
-                        Log.i(TAG, SensorName + " CHECKED");
                         mSelectedSensorList[checkBoxId] = true;
                     } else {
-                        Log.i(TAG, SensorName + " UNCHECKED");
                         mSelectedSensorList[checkBoxId] = false;
                     }
                 }
@@ -154,12 +199,10 @@ public class SensorSettingsActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
             Log.i(TAG, "Sensor Settings OK");
-            Intent returnIntent = new Intent();
-            Bundle bundle = new Bundle();
-            bundle.putBooleanArray("selectedSensors", mSelectedSensorList);
-            bundle.putInt("sensorDelay", sensorDelay);
-            returnIntent.putExtras(bundle);
-            setResult(RESULT_OK, returnIntent);
+
+            storeBooleanArray(SNSSELECTION, mSelectedSensorList, sharedPreferences);
+            sharedPreferences.edit().putInt(SNSDELAY, mSensorDelay).commit();
+
             finish();
         }
     };

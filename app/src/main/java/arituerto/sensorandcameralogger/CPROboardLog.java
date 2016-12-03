@@ -33,8 +33,6 @@ public class CPROboardLog {
     public static int stateReceiving = 3;
     public static int stateDisconnected = 4;
 
-    private boolean stateReceivingBool = false;
-
     private static String ACC_STRM = "ACCELEROMETER";
     private static String STP_STRM = "STEPS";
     private static String GYR_STRM = "GYROSCOPE";
@@ -53,7 +51,11 @@ public class CPROboardLog {
     private boolean logBar;
     private boolean logMag;
 
+    private boolean stateReceivingBool = false;
+
+
     private CPROboardLogListener listener;
+
 
     public interface CPROboardLogListener {
         void onCPROStateChanged(int state, String boardID);
@@ -82,14 +84,15 @@ public class CPROboardLog {
         this.logMag = logMag;
 
         this.listener = null;
-        if (listener != null) {
-            listener.onCPROStateChanged(stateCreated, boardID);
-        }
 
     }
 
     public void registerListener(CPROboardLogListener listener) {
         this.listener = listener;
+
+        if (listener != null) {
+            listener.onCPROStateChanged(stateCreated, boardID);
+        }
     }
 
     public void connect() {

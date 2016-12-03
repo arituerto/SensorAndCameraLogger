@@ -2,51 +2,37 @@ package arituerto.sensorandcameralogger;
 
 import android.Manifest;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.util.Size;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
-import android.widget.RadioButton;
 import android.widget.Switch;
 
 public class MainActivity extends AppCompatActivity {
 
-    // TODO: Save configuration for next runs.
     // TODO: Add GPS logging
+
+    private SharedPreferences mainPreferences;
 
     private static final String TAG = "MainActivity";
 
-    static final int SENSORS_SETTINGS_REQUEST = 1;
     static final int CAMERA_SETTINGS_REQUEST = 2;
     static final int CPRO_SETTINGS_REQUEST = 3;
 
     // SENSORS
     private boolean mLogSensor;
-    private boolean[] mSelectedSensorList;
-    private int mSensorDelay;
 
     // CAMERA
     private boolean mLogCamera;
-    private String mCameraId;
-    private Size mImageSize;
-    private int mFocusMode;
-    private int mOutFormat;
 
     // CPRO
     private boolean mLogCPRO;
-    private String mCPRO_Rmac;
-    private String mCPRO_Lmac;
-    private float mCPROfreq;
-    private boolean mCPROAccelerometer;
-    private boolean mCPROGyroscope;
-    private boolean mCPROBarometer;
-    private boolean mCPROMagnetometer;
 
     // LOGGING
     private String dataSetName;
@@ -68,11 +54,12 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        // TODO: Load and save the parameters. Do not start logging without parameters configures or loaded
-        mLogSensor = true;
-        mLogCamera = true;
-        mLogCPRO = false;
-        dataSetName = getResources().getString(R.string.basic_datasetName);
+        // LOAD PREFERENCES
+        mainPreferences = getSharedPreferences("mainPreferences", MODE_PRIVATE);
+        mLogSensor = mainPreferences.getBoolean("sensorLogging", false);
+        mLogCamera = mainPreferences.getBoolean("cameraLogging", false);
+        mLogCPRO = mainPreferences.getBoolean("cproLogging", false);
+        dataSetName = mainPreferences.getString("dataSetName", "test");
 
         EditText textEntry = (EditText) findViewById(R.id.inputDataSetName);
         textEntry.setText(dataSetName);
@@ -136,45 +123,6 @@ public class MainActivity extends AppCompatActivity {
         startButton.setOnClickListener(startClick);
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-
-        switch (requestCode) {
-            case (SENSORS_SETTINGS_REQUEST):
-                if (resultCode == RESULT_OK) {
-                    Log.i(TAG, "Sensor Settings Received");
-                    Bundle bundle = data.getExtras();
-                    mSelectedSensorList = bundle.getBooleanArray("selectedSensors");
-                    mSensorDelay = bundle.getInt("sensorDelay");
-                }
-                break;
-            case (CAMERA_SETTINGS_REQUEST):
-                if (resultCode == RESULT_OK) {
-                    Log.i(TAG, "Camera Settings Received");
-                    Bundle bundle = data.getExtras();
-                    mCameraId = bundle.getString("selectedCamera");
-                    mImageSize = bundle.getSize("selectedSize");
-                    mFocusMode = bundle.getInt("selectedFocus");
-                    mOutFormat = bundle.getInt("selectedOutFormat");
-                }
-                break;
-            case (CPRO_SETTINGS_REQUEST):
-                if (resultCode == RESULT_OK) {
-                    Log.i(TAG, "CPRO Settings Received");
-                    Bundle bundle = data.getExtras();
-                    mCPRO_Rmac = bundle.getString("CPRORmac");
-                    mCPRO_Lmac = bundle.getString("CPROLmac");
-                    mCPROfreq = bundle.getFloat("CPROfreq");
-                    mCPROAccelerometer = bundle.getBoolean("CPROAccelerometer");
-                    mCPROGyroscope = bundle.getBoolean("CPROGyroscope");
-                    mCPROBarometer = bundle.getBoolean("CPROBarometer");
-                    mCPROMagnetometer = bundle.getBoolean("CPROMagnetometer");
-                }
-                break;
-        }
-
-    }
-
     // BUTTONS FUNCTIONS
     private View.OnClickListener startClick = new View.OnClickListener() {
         @Override
@@ -183,31 +131,12 @@ public class MainActivity extends AppCompatActivity {
             EditText textEntry = (EditText) findViewById(R.id.inputDataSetName);
             dataSetName = textEntry.getText().toString();
 
+            mainPreferences.edit().putBoolean("sensorLogging", mLogSensor);
+            mainPreferences.edit().putBoolean("cameraLogging", mLogCamera);
+            mainPreferences.edit().putBoolean("cproLogging", mLogCPRO);
+            mainPreferences.edit().putString("dataSetName", dataSetName);
+
             Intent intent = new Intent(MainActivity.this, LoggingActivity.class);
-            Bundle outBundle = new Bundle();
-
-            outBundle.putString("dataSetName", dataSetName);
-            outBundle.putBoolean("LogSensor", mLogSensor);
-            outBundle.putInt("SensorDelay", mSensorDelay);
-            outBundle.putBooleanArray("SensorSelection", mSelectedSensorList);
-
-            outBundle.putBoolean("LogCamera", mLogCamera);
-            outBundle.putString("CameraId", mCameraId);
-            outBundle.putSize("CameraSize", mImageSize);
-            outBundle.putInt("CameraAF", mFocusMode);
-            outBundle.putInt("OutputFormat", mOutFormat);
-
-            outBundle.putBoolean("LogCPRO", mLogCPRO);
-            outBundle.putString("CPRORmac", mCPRO_Rmac);
-            outBundle.putString("CPROLmac", mCPRO_Lmac);
-            outBundle.putFloat("CPROfreq", mCPROfreq);
-            outBundle.putBoolean("CPROAccelerometer", mCPROAccelerometer);
-            outBundle.putBoolean("CPROGyroscope", mCPROGyroscope);
-            outBundle.putBoolean("CPROBarometer", mCPROBarometer);
-            outBundle.putBoolean("CPROMagnetometer", mCPROMagnetometer);
-
-            intent.putExtras(outBundle);
-
             startActivity(intent);
         }
     };
@@ -217,7 +146,7 @@ public class MainActivity extends AppCompatActivity {
         public void onClick(View v) {
             Log.i(TAG, "Sensor Settings");
             Intent intent = new Intent(MainActivity.this, SensorSettingsActivity.class);
-            startActivityForResult(intent, SENSORS_SETTINGS_REQUEST);
+            startActivity(intent);
         }
     };
 
@@ -226,7 +155,7 @@ public class MainActivity extends AppCompatActivity {
         public void onClick(View v) {
             Log.i(TAG, "Camera Settings");
             Intent intent = new Intent(MainActivity.this, CameraSettingsActivity.class);
-            startActivityForResult(intent, CAMERA_SETTINGS_REQUEST);
+            startActivity(intent);
         }
     };
 
@@ -235,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
         public void onClick(View v) {
             Log.i(TAG, "CPRO Settings");
             Intent intent = new Intent(MainActivity.this, CPROSettingsActivity.class);
-            startActivityForResult(intent, CPRO_SETTINGS_REQUEST);
+            startActivity(intent);
         }
     };
 }

@@ -1,7 +1,9 @@
 package arituerto.sensorandcameralogger;
 
 import android.app.VoiceInteractor;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.ImageFormat;
 import android.graphics.PixelFormat;
 import android.hardware.SensorManager;
@@ -21,6 +23,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
+import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,178 +32,28 @@ public class CameraSettingsActivity extends AppCompatActivity {
 
     private static final String TAG = "CameraSettings";
 
-    private CameraManager mCameraManager;
-    private CameraCharacteristics mCameraCharacteristics;
-    private StreamConfigurationMap mStreamConfigurationMap;
+    public static String CAMID = "camID";
+    public static String SIZE = "size";
+    public static String FORMAT = "format";
+    public static String FOCUS = "afMode";
+
+    private SharedPreferences sharedPreferences;
 
     private int[] mOutputFormatsList;
     private int mOutFormat;
+
     private String[] mCameraIdList;
     private String mCameraId;
+
     private Size[] mImageSizeList;
-    private Size mImageSize;
+    private int mImageSizePos;
+
     private int[] mFocusModeList;
     private int mFocusMode;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-
-        Log.i(TAG, "onCreate");
-
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_camera_settings);
-
-        mCameraManager = (CameraManager) getSystemService(CAMERA_SERVICE);
-
-        try {
-            mCameraIdList = mCameraManager.getCameraIdList();
-            configureCameraIdSpinner();
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
-
-        final Button okButton = (Button) findViewById(R.id.okButton);
-        okButton.setOnClickListener(okClick);
-    }
-
-    private View.OnClickListener okClick = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            Log.i(TAG, "Camera Settings OK");
-            Intent returnIntent = new Intent();
-            Bundle bundle = new Bundle();
-            bundle.putString("selectedCamera", mCameraId);
-            bundle.putSize("selectedSize", mImageSize);
-            bundle.putInt("selectedFocus", mFocusMode);
-            bundle.putInt("selectedOutFormat", mOutFormat);
-            returnIntent.putExtras(bundle);
-            setResult(RESULT_OK, returnIntent);
-            finish();
-        }
-    };
-
-    private void configureCameraIdSpinner() {
-        Spinner camIdSpinner = (Spinner) findViewById(R.id.spinnerCamId);
-        ArrayAdapter camIdAdapter = new ArrayAdapter(this, R.layout.support_simple_spinner_dropdown_item, mCameraIdList);
-        camIdSpinner.setAdapter(camIdAdapter);
-        camIdSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                setCameraId(mCameraIdList[position]);
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                setCameraId(mCameraIdList[0]);
-            }
-        });
-    }
-
-    private void configureOutputFormatSpinner() {
-
-        String[] outFormatStringList = new String[mOutputFormatsList.length];
-        for (int i = 0; i < mOutputFormatsList.length; i++) {
-            outFormatStringList[i] = getOutputFormatName(mOutputFormatsList[i]);
-        }
-        Spinner outFormatSpinner = (Spinner) findViewById(R.id.spinnerOutputFormat);
-        ArrayAdapter outFormatAdapter = new ArrayAdapter(this, R.layout.support_simple_spinner_dropdown_item, outFormatStringList);
-        outFormatSpinner.setAdapter(outFormatAdapter);
-        outFormatSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                setOutputFormat(mOutputFormatsList[position]);
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                setOutputFormat(mOutputFormatsList[0]);
-            }
-        });
-    }
-
-    private void configureCameraPropsSpinners() {
-
-        String[] camResStringList = new String[mImageSizeList.length];
-        for (int i = 0; i < mImageSizeList.length; i++) {
-            camResStringList[i] = mImageSizeList[i].getWidth() + "x" + mImageSizeList[i].getHeight();
-        }
-        Spinner camResSpinner = (Spinner) findViewById(R.id.spinnerResolution);
-        ArrayAdapter camResAdapter = new ArrayAdapter(this, R.layout.support_simple_spinner_dropdown_item, camResStringList);
-        camResSpinner.setAdapter(camResAdapter);
-        camResSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                Log.i(TAG, "Image Size Selected" + position);
-                mImageSize = mImageSizeList[position];
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                mImageSize = mImageSizeList[0];
-            }
-        });
-
-        String[] camAFStringList = new String[mFocusModeList.length];
-        for (int i = 0; i < mFocusModeList.length; i++) {
-            switch (mFocusModeList[i]) {
-                case (CameraCharacteristics.CONTROL_AF_MODE_AUTO):
-                    camAFStringList[i] = "CONTROL_AF_MODE_AUTO";
-                    break;
-                case (CameraCharacteristics.CONTROL_AF_MODE_CONTINUOUS_PICTURE):
-                    camAFStringList[i] = "CONTROL_AF_MODE_CONTINUOUS_PICTURE";
-                    break;
-                case (CameraCharacteristics.CONTROL_AF_MODE_CONTINUOUS_VIDEO):
-                    camAFStringList[i] = "CONTROL_AF_MODE_CONTINUOUS_VIDEO";
-                    break;
-                case (CameraCharacteristics.CONTROL_AF_MODE_MACRO):
-                    camAFStringList[i] = "CONTROL_AF_MODE_MACRO";
-                    break;
-                case (CameraCharacteristics.CONTROL_AF_MODE_EDOF):
-                    camAFStringList[i] = "CONTROL_AF_MODE_EDOF";
-                    break;
-                case (CameraCharacteristics.CONTROL_AF_MODE_OFF):
-                    camAFStringList[i] = "CONTROL_AF_MODE_OFF";
-                    break;
-            }
-        }
-        Spinner camAFSpinner = (Spinner) findViewById(R.id.spinnerAF);
-        ArrayAdapter camAFAdapter = new ArrayAdapter(this, R.layout.support_simple_spinner_dropdown_item, camAFStringList);
-        camAFSpinner.setAdapter(camAFAdapter);
-        camAFSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                Log.i(TAG, "AF mode Selected" + position);
-                mFocusMode = mFocusModeList[position];
-
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                mFocusMode = mFocusModeList[0];
-            }
-        });
-    }
-
-    private void setCameraId(String camId) {
-        Log.i(TAG, "Camera Selected " + camId);
-        mCameraId = camId;
-        try {
-            mCameraCharacteristics = mCameraManager.getCameraCharacteristics(camId);
-            mStreamConfigurationMap = mCameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-            mOutputFormatsList = mStreamConfigurationMap.getOutputFormats();
-            configureOutputFormatSpinner();
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void setOutputFormat(int outFormat) {
-        Log.i(TAG, "Output format selected " + outFormat);
-        mOutFormat = outFormat;
-        mImageSizeList = mStreamConfigurationMap.getOutputSizes(outFormat);
-        mFocusModeList = mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
-        configureCameraPropsSpinners();
-    }
+    private CameraManager mCameraManager;
+    private CameraCharacteristics mCameraCharacteristics;
+    private StreamConfigurationMap mStreamConfigurationMap;
 
     public static String getOutputFormatName(int i) {
         String outString = "";
@@ -227,9 +80,199 @@ public class CameraSettingsActivity extends AppCompatActivity {
             case (PixelFormat.TRANSLUCENT): outString = "TRANSLUCENT"; break;
             case (PixelFormat.TRANSPARENT): outString = "TRANSPARENT"; break;
             case (PixelFormat.RGB_888): outString = "RGB_888"; break;
+            default: outString = "UNSUPPORTED"; break;
         }
 
         return outString;
+    }
+
+    public static String getAFModeName(int i) {
+        String outString = "";
+        switch (i) {
+            case (CameraCharacteristics.CONTROL_AF_MODE_AUTO): outString = "AUTO"; break;
+            case (CameraCharacteristics.CONTROL_AF_MODE_CONTINUOUS_PICTURE): outString = "CONTINUOUS_PICTURE"; break;
+            case (CameraCharacteristics.CONTROL_AF_MODE_CONTINUOUS_VIDEO): outString = "CONTINUOUS_VIDEO"; break;
+            case (CameraCharacteristics.CONTROL_AF_MODE_MACRO): outString = "MACRO"; break;
+            case (CameraCharacteristics.CONTROL_AF_MODE_EDOF): outString = "EDOF"; break;
+            case (CameraCharacteristics.CONTROL_AF_MODE_OFF): outString = "OFF"; break;
+            default: outString = "UNSUPPORTED"; break;
+        }
+        return outString;
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+
+        Log.i(TAG, "onCreate");
+
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_camera_settings);
+
+        sharedPreferences = getSharedPreferences("CameraPrefs", MODE_PRIVATE);
+
+        mCameraId = sharedPreferences.getString(CAMID, null);
+        mOutFormat = sharedPreferences.getInt(FORMAT, -1);
+        mImageSizePos = sharedPreferences.getInt(SIZE, -1);
+        mFocusMode = sharedPreferences.getInt(FOCUS, -1);
+
+        mCameraManager = (CameraManager) getSystemService(CAMERA_SERVICE);
+        try {
+            mCameraIdList = mCameraManager.getCameraIdList();
+            configureCameraIdSpinner();
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+
+        final Button okButton = (Button) findViewById(R.id.okButton);
+        okButton.setOnClickListener(okClick);
+    }
+
+    private View.OnClickListener okClick = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+
+            Log.i(TAG, "Camera Settings OK");
+
+            sharedPreferences.edit().putString(CAMID, mCameraId).commit();
+            sharedPreferences.edit().putInt(FORMAT, mOutFormat).commit();
+            sharedPreferences.edit().putInt(SIZE, mImageSizePos).commit();
+            sharedPreferences.edit().putInt(FOCUS, mFocusMode).commit();
+
+            finish();
+        }
+    };
+
+    private void configureCameraIdSpinner() {
+
+        Spinner camIdSpinner = (Spinner) findViewById(R.id.spinnerCamId);
+        ArrayAdapter camIdAdapter = new ArrayAdapter(this, R.layout.support_simple_spinner_dropdown_item, mCameraIdList);
+        camIdSpinner.setAdapter(camIdAdapter);
+        if (mCameraId != null) {
+            camIdSpinner.setSelection(camIdAdapter.getPosition(mCameraId));
+            setCameraId(mCameraId);
+        }
+        camIdSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                setCameraId(mCameraIdList[position]);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+            }
+        });
+    }
+
+    private void setCameraId(String camId) {
+
+        if (!mCameraId.equals(camId)) {
+            Log.i(TAG, "Camera Selected " + camId);
+            mCameraId = camId;
+            mOutFormat = -1;
+            mImageSizePos = -1;
+            mFocusMode = -1;
+        }
+
+        try {
+
+            mCameraCharacteristics = mCameraManager.getCameraCharacteristics(mCameraId);
+            mStreamConfigurationMap = mCameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            mOutputFormatsList = mStreamConfigurationMap.getOutputFormats();
+
+            configureOutputFormatSpinner();
+
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void configureOutputFormatSpinner() {
+
+        String[] outFormatStringList = new String[mOutputFormatsList.length];
+        for (int i = 0; i < mOutputFormatsList.length; i++) {
+            outFormatStringList[i] = getOutputFormatName(mOutputFormatsList[i]);
+        }
+
+        Spinner outFormatSpinner = (Spinner) findViewById(R.id.spinnerOutputFormat);
+        ArrayAdapter outFormatAdapter = new ArrayAdapter(this, R.layout.support_simple_spinner_dropdown_item, outFormatStringList);
+        outFormatSpinner.setAdapter(outFormatAdapter);
+        if (mOutFormat >= 0) {
+            outFormatSpinner.setSelection(outFormatAdapter.getPosition(getOutputFormatName(mOutFormat)));
+            setOutputFormat(mOutFormat);
+        }
+        outFormatSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                setOutputFormat(mOutputFormatsList[position]);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+    }
+
+    private void setOutputFormat(int outFormat) {
+
+        if (mOutFormat != outFormat) {
+            Log.i(TAG, "Output format selected " + getOutputFormatName(outFormat));
+            mOutFormat = outFormat;
+            mImageSizePos = -1;
+            mFocusMode = -1;
+        }
+
+        mImageSizeList = mStreamConfigurationMap.getOutputSizes(mOutFormat);
+        mFocusModeList = mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
+
+        configureCameraPropsSpinners();
+    }
+
+    private void configureCameraPropsSpinners() {
+
+        // SIZE
+        String[] camResStringList = new String[mImageSizeList.length];
+        for (int i = 0; i < mImageSizeList.length; i++) {
+            camResStringList[i] = mImageSizeList[i].getWidth() + "x" + mImageSizeList[i].getHeight();
+        }
+
+        Spinner camResSpinner = (Spinner) findViewById(R.id.spinnerResolution);
+        ArrayAdapter camResAdapter = new ArrayAdapter(this, R.layout.support_simple_spinner_dropdown_item, camResStringList);
+        camResSpinner.setAdapter(camResAdapter);
+        if (mImageSizePos >= 0) {
+            camResSpinner.setSelection(mImageSizePos);
+        }
+        camResSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                Log.i(TAG, "Image Size Selected " + mImageSizeList[position].toString());
+                mImageSizePos = position;
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
+        // AUTO FOCUS
+        String[] camAFStringList = new String[mFocusModeList.length];
+        for (int i = 0; i < mFocusModeList.length; i++) {
+            camAFStringList[i] = getAFModeName(mFocusModeList[i]);
+        }
+
+        Spinner camAFSpinner = (Spinner) findViewById(R.id.spinnerAF);
+        ArrayAdapter camAFAdapter = new ArrayAdapter(this, R.layout.support_simple_spinner_dropdown_item, camAFStringList);
+        camAFSpinner.setAdapter(camAFAdapter);
+        if (mFocusMode >= 0) {
+            camAFSpinner.setSelection(camAFAdapter.getPosition(getAFModeName(mFocusMode)));
+        }
+        camAFSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                Log.i(TAG, "AF mode Selected " + getAFModeName(mFocusModeList[position]));
+                mFocusMode = mFocusModeList[position];
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
     }
 
 }
