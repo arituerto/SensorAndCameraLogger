@@ -32,6 +32,7 @@ public class CameraSettingsActivity extends AppCompatActivity {
 
     private static final String TAG = "CameraSettings";
 
+    public static String SHRDPRFS_NAME = "CameraPrefs";
     public static String CAMID = "camID";
     public static String SIZE = "size";
     public static String FORMAT = "format";
@@ -108,7 +109,7 @@ public class CameraSettingsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera_settings);
 
-        sharedPreferences = getSharedPreferences("CameraPrefs", MODE_PRIVATE);
+        sharedPreferences = getSharedPreferences(SHRDPRFS_NAME, MODE_PRIVATE);
 
         mCameraId = sharedPreferences.getString(CAMID, null);
         mOutFormat = sharedPreferences.getInt(FORMAT, -1);

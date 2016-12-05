@@ -28,12 +28,7 @@ public class SensorSettingsActivity extends AppCompatActivity {
             SensorManager.SENSOR_DELAY_GAME,
             SensorManager.SENSOR_DELAY_FASTEST};
 
-    final String[] sensorDelayNameArray = new String[] {
-            "SENSOR_DELAY_UI",
-            "SENSOR_DELAY_NORMAL",
-            "SENSOR_DELAY_GAME",
-            "SENSOR_DELAY_FASTEST"};
-
+    public static String SHRDPRFS_NAME = "SensorPrefs";
     public static String SNSSELECTION = "sensorSelection";
     public static String SNSDELAY = "sensorDelay";
 
@@ -101,7 +96,7 @@ public class SensorSettingsActivity extends AppCompatActivity {
             mNameSensorList.add(sensorString);
         }
 
-        sharedPreferences = getSharedPreferences("SensorPrefs", MODE_PRIVATE);
+        sharedPreferences = getSharedPreferences(SHRDPRFS_NAME, MODE_PRIVATE);
         mSelectedSensorList = loadBooleanArray(SNSSELECTION, sharedPreferences);
         mSensorDelay = sharedPreferences.getInt(SNSDELAY, SensorManager.SENSOR_DELAY_NORMAL);
 

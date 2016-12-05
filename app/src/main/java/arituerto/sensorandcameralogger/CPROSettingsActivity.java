@@ -13,6 +13,7 @@ public class CPROSettingsActivity extends AppCompatActivity {
 
     private static final String TAG = "CPROSettings";
 
+    public static String SHRDPRFS_NAME = "cproPrefs";
     public static String CPRORMAC = "cproRmac";
     public static String CPROLMAC = "cproLmac";
 
@@ -29,7 +30,7 @@ public class CPROSettingsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cprosettings);
 
-        sharedPreferences = getSharedPreferences("cproPrefs", MODE_PRIVATE);
+        sharedPreferences = getSharedPreferences(SHRDPRFS_NAME, MODE_PRIVATE);
         mCPRO_Rmac = sharedPreferences.getString(CPRORMAC, "D3:27:08:FD:69:78");
         mCPRO_Lmac = sharedPreferences.getString(CPROLMAC, "D0:72:37:14:3B:15");
 

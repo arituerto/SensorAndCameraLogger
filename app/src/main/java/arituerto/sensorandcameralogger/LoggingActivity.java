@@ -238,14 +238,14 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
     private void readPreferences() {
 
         // Main Preferences
-        SharedPreferences mainPrefs = getSharedPreferences("mainPreferences", MODE_PRIVATE);
-        mLogSensor = mainPrefs.getBoolean("sensorLogging", false);
-        mLogCamera = mainPrefs.getBoolean("cameraLogging", false);
-        mLogCPRO = mainPrefs.getBoolean("cproLogging", false);
-        mDataSetName = mainPrefs.getString("dataSetName", "test");
+        SharedPreferences mainPreferences = getSharedPreferences(MainActivity.SHRDPRFS_NAME, MODE_PRIVATE);
+        mLogSensor = mainPreferences.getBoolean(MainActivity.SNSLOG, false);
+        mLogCamera = mainPreferences.getBoolean(MainActivity.CAMLOG, false);
+        mLogCPRO = mainPreferences.getBoolean(MainActivity.CPROLOG, false);
+        mDataSetName = mainPreferences.getString(MainActivity.DTSTNAME, "test");
 
         // CAMERA SETTINGS
-        SharedPreferences cameraPrefs = getSharedPreferences("CameraPrefs", MODE_PRIVATE);
+        SharedPreferences cameraPrefs = getSharedPreferences(CameraSettingsActivity.SHRDPRFS_NAME, MODE_PRIVATE);
         mCameraId = cameraPrefs.getString(CameraSettingsActivity.CAMID, null);
         mOutputFormat = cameraPrefs.getInt(CameraSettingsActivity.FORMAT, -1);
         int sizePos = cameraPrefs.getInt(CameraSettingsActivity.SIZE, -1);
@@ -259,12 +259,12 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
         mCameraAF = cameraPrefs.getInt(CameraSettingsActivity.FOCUS, -1);
 
         // SENSOR SETTINGS
-        SharedPreferences sensorsPrefs = getSharedPreferences("SensorPrefs", MODE_PRIVATE);
+        SharedPreferences sensorsPrefs = getSharedPreferences(SensorSettingsActivity.SHRDPRFS_NAME, MODE_PRIVATE);
         mSelectedSensorList = SensorSettingsActivity.loadBooleanArray(SensorSettingsActivity.SNSSELECTION, sensorsPrefs);
         mSensorDelay = sensorsPrefs.getInt(SensorSettingsActivity.SNSDELAY, SensorManager.SENSOR_DELAY_NORMAL);
 
         // CPRO SETTINGS
-        SharedPreferences cproPrefs = getSharedPreferences("cproPrefs", MODE_PRIVATE);
+        SharedPreferences cproPrefs = getSharedPreferences(CPROSettingsActivity.SHRDPRFS_NAME, MODE_PRIVATE);
         mCPRO_Rmac = cproPrefs.getString(CPROSettingsActivity.CPRORMAC, "D3:27:08:FD:69:78");
         mCPRO_Lmac = cproPrefs.getString(CPROSettingsActivity.CPROLMAC, "D0:72:37:14:3B:15");
     }

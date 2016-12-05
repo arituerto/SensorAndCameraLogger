@@ -22,8 +22,11 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
 
-    static final int CAMERA_SETTINGS_REQUEST = 2;
-    static final int CPRO_SETTINGS_REQUEST = 3;
+    public static String SHRDPRFS_NAME = "MainPrefs";
+    public static String CAMLOG = "CameraLog";
+    public static String SNSLOG = "SensorLog";
+    public static String CPROLOG = "cproLog";
+    public static String DTSTNAME = "dataSetName";
 
     // SENSORS
     private boolean mLogSensor;
@@ -55,11 +58,11 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // LOAD PREFERENCES
-        mainPreferences = getSharedPreferences("mainPreferences", MODE_PRIVATE);
-        mLogSensor = mainPreferences.getBoolean("sensorLogging", false);
-        mLogCamera = mainPreferences.getBoolean("cameraLogging", false);
-        mLogCPRO = mainPreferences.getBoolean("cproLogging", false);
-        dataSetName = mainPreferences.getString("dataSetName", "test");
+        mainPreferences = getSharedPreferences(SHRDPRFS_NAME, MODE_PRIVATE);
+        mLogSensor = mainPreferences.getBoolean(SNSLOG, false);
+        mLogCamera = mainPreferences.getBoolean(CAMLOG, false);
+        mLogCPRO = mainPreferences.getBoolean(CPROLOG, false);
+        dataSetName = mainPreferences.getString(DTSTNAME, "test");
 
         EditText textEntry = (EditText) findViewById(R.id.inputDataSetName);
         textEntry.setText(dataSetName);
@@ -131,10 +134,10 @@ public class MainActivity extends AppCompatActivity {
             EditText textEntry = (EditText) findViewById(R.id.inputDataSetName);
             dataSetName = textEntry.getText().toString();
 
-            mainPreferences.edit().putBoolean("sensorLogging", mLogSensor);
-            mainPreferences.edit().putBoolean("cameraLogging", mLogCamera);
-            mainPreferences.edit().putBoolean("cproLogging", mLogCPRO);
-            mainPreferences.edit().putString("dataSetName", dataSetName);
+            mainPreferences.edit().putBoolean(SNSLOG, mLogSensor).commit();
+            mainPreferences.edit().putBoolean(CAMLOG, mLogCamera).commit();
+            mainPreferences.edit().putBoolean(CPROLOG, mLogCPRO).commit();
+            mainPreferences.edit().putString(DTSTNAME, dataSetName).commit();
 
             Intent intent = new Intent(MainActivity.this, LoggingActivity.class);
             startActivity(intent);
