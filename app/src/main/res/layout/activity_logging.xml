@@ -11,9 +11,65 @@
     tools:context="arituerto.sensorandcameralogger.LoggingActivity">
 
     <TextureView
+        android:id="@+id/textureViewLogging"
+        android:layout_width="300dp"
+        android:layout_height="400dp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true" />
+
+    <TextView
+        android:text="TextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerVertical="true"
-        android:layout_centerHorizontal="true"
-        android:id="@+id/textureViewLogging" />
+        android:id="@+id/textSensors"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"
+        android:layout_toStartOf="@+id/buttonLog" />
+
+    <TextView
+        android:text="TextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/textCamera"
+        android:layout_below="@+id/textSensors"
+        android:layout_alignParentStart="true"
+        android:layout_toStartOf="@+id/buttonLog" />
+
+    <TextView
+        android:text="TextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/textCPROR"
+        android:layout_below="@+id/textCamera"
+        android:layout_alignParentStart="true"
+        android:layout_toStartOf="@+id/buttonLog" />
+
+    <TextView
+        android:text="TextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/textCPROR"
+        android:layout_alignParentStart="true"
+        android:id="@+id/textCPROL"
+        android:layout_toStartOf="@+id/buttonLog" />
+
+    <Button
+        android:text="Button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/buttonLog"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignBottom="@+id/textCPROL" />
+
+    <ProgressBar
+        style="?android:attr/progressBarStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/progressBarLogging"
+        android:layout_alignParentTop="true"
+        android:layout_alignBottom="@+id/buttonLog"
+        android:layout_alignParentEnd="true"
+        android:layout_toEndOf="@+id/textSensors" />
+
 </RelativeLayout>

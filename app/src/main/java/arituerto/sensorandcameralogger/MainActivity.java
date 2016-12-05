@@ -2,12 +2,12 @@ package arituerto.sensorandcameralogger;
 
 import android.Manifest;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.util.Size;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
@@ -16,33 +16,29 @@ import android.widget.Switch;
 
 public class MainActivity extends AppCompatActivity {
 
-    // TODO: Save configuration for next runs.
     // TODO: Add GPS logging
+
+    private SharedPreferences mainPreferences;
 
     private static final String TAG = "MainActivity";
 
-    static final int SENSORS_SETTINGS_REQUEST = 1;
-    static final int CAMERA_SETTINGS_REQUEST = 2;
-    static final int GPS_SETTINGS_REQUEST = 3;
+    public static String SHRDPRFS_NAME = "MainPrefs";
+    public static String CAMLOG = "CameraLog";
+    public static String SNSLOG = "SensorLog";
+    public static String CPROLOG = "cproLog";
+    public static String DTSTNAME = "dataSetName";
 
     // SENSORS
     private boolean mLogSensor;
-    private boolean[] mSelectedSensorList;
-    private int mSensorDelay;
 
     // CAMERA
     private boolean mLogCamera;
-    private String mCameraId;
-    private Size mImageSize;
-    private int mFocusMode;
-    private int mOutFormat;
 
-    // GPS
-    private boolean mLogGPS;
+    // CPRO
+    private boolean mLogCPRO;
 
     // LOGGING
     private String dataSetName;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,16 +57,12 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
-            return;
-        }
-
-        // TODO: Load and save the parameters. Do not start logging without parameters configures or loaded
-        mLogSensor = true;
-        mLogCamera = true;
-        mLogGPS = false;
-        dataSetName = "test";
+        // LOAD PREFERENCES
+        mainPreferences = getSharedPreferences(SHRDPRFS_NAME, MODE_PRIVATE);
+        mLogSensor = mainPreferences.getBoolean(SNSLOG, false);
+        mLogCamera = mainPreferences.getBoolean(CAMLOG, false);
+        mLogCPRO = mainPreferences.getBoolean(CPROLOG, false);
+        dataSetName = mainPreferences.getString(DTSTNAME, "test");
 
         EditText textEntry = (EditText) findViewById(R.id.inputDataSetName);
         textEntry.setText(dataSetName);
@@ -90,6 +82,21 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        Switch cproSwitch = (Switch) findViewById(R.id.cproSwitch);
+        cproSwitch.setChecked(mLogCPRO);
+        cproSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    mLogCPRO = true;
+                    Log.i(TAG, "CPRO Logging ON");
+                } else {
+                    mLogCPRO = false;
+                    Log.i(TAG, "CPRO Logging OFF");
+                }
+            }
+        });
+
         Switch cameraSwitch = (Switch) findViewById(R.id.cameraSwitch);
         cameraSwitch.setChecked(mLogCamera);
         cameraSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -105,8 +112,12 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+
         final Button sensorSettingsButton = (Button) findViewById(R.id.buttonSensorSettings);
         sensorSettingsButton.setOnClickListener(sensorSettingsClick);
+
+        final Button cproSettingsButton = (Button) findViewById(R.id.buttonCPROSettings);
+        cproSettingsButton.setOnClickListener(cproSettingsClick);
 
         final Button cameraSettingsButton = (Button) findViewById(R.id.buttonCameraSettings);
         cameraSettingsButton.setOnClickListener(cameraSettingsClick);
@@ -115,61 +126,21 @@ public class MainActivity extends AppCompatActivity {
         startButton.setOnClickListener(startClick);
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-
-        if (requestCode == SENSORS_SETTINGS_REQUEST) {
-
-            if (resultCode == RESULT_OK) {
-                Log.i(TAG, "Sensor Settings Received");
-                Bundle bundle = data.getExtras();
-                mSelectedSensorList = bundle.getBooleanArray("selectedSensors");
-                mSensorDelay = bundle.getInt("sensorDelay");
-            }
-
-        } else if (requestCode == CAMERA_SETTINGS_REQUEST) {
-
-            if (resultCode == RESULT_OK) {
-                Log.i(TAG, "Camera Settings Received");
-                Bundle bundle = data.getExtras();
-                mCameraId = bundle.getString("selectedCamera");
-                mImageSize = bundle.getSize("selectedSize");
-                mFocusMode = bundle.getInt("selectedFocus");
-                mOutFormat = bundle.getInt("selectedOutFormat");
-            }
-
-        }
-
-    }
-
     // BUTTONS FUNCTIONS
     private View.OnClickListener startClick = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
 
-            if (mLogSensor | mLogCamera) {
+            EditText textEntry = (EditText) findViewById(R.id.inputDataSetName);
+            dataSetName = textEntry.getText().toString();
 
-                EditText textEntry = (EditText) findViewById(R.id.inputDataSetName);
-                dataSetName = textEntry.getText().toString();
+            mainPreferences.edit().putBoolean(SNSLOG, mLogSensor).commit();
+            mainPreferences.edit().putBoolean(CAMLOG, mLogCamera).commit();
+            mainPreferences.edit().putBoolean(CPROLOG, mLogCPRO).commit();
+            mainPreferences.edit().putString(DTSTNAME, dataSetName).commit();
 
-                Intent intent = new Intent(MainActivity.this, LoggingActivity.class);
-                Bundle outBundle = new Bundle();
-
-                outBundle.putString("dataSetName", dataSetName);
-                outBundle.putBoolean("LogSensor", mLogSensor);
-                outBundle.putInt("SensorDelay", mSensorDelay);
-                outBundle.putBooleanArray("SensorSelection", mSelectedSensorList);
-
-                outBundle.putBoolean("LogCamera", mLogCamera);
-                outBundle.putString("CameraId", mCameraId);
-                outBundle.putSize("CameraSize", mImageSize);
-                outBundle.putInt("CameraAF", mFocusMode);
-                outBundle.putInt("OutputFormat", mOutFormat);
-
-                intent.putExtras(outBundle);
-
-                startActivity(intent);
-            }
+            Intent intent = new Intent(MainActivity.this, LoggingActivity.class);
+            startActivity(intent);
         }
     };
 
@@ -178,7 +149,7 @@ public class MainActivity extends AppCompatActivity {
         public void onClick(View v) {
             Log.i(TAG, "Sensor Settings");
             Intent intent = new Intent(MainActivity.this, SensorSettingsActivity.class);
-            startActivityForResult(intent, SENSORS_SETTINGS_REQUEST);
+            startActivity(intent);
         }
     };
 
@@ -187,7 +158,16 @@ public class MainActivity extends AppCompatActivity {
         public void onClick(View v) {
             Log.i(TAG, "Camera Settings");
             Intent intent = new Intent(MainActivity.this, CameraSettingsActivity.class);
-            startActivityForResult(intent, CAMERA_SETTINGS_REQUEST);
+            startActivity(intent);
+        }
+    };
+
+    private View.OnClickListener cproSettingsClick = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            Log.i(TAG, "CPRO Settings");
+            Intent intent = new Intent(MainActivity.this, CPROSettingsActivity.class);
+            startActivity(intent);
         }
     };
 }
