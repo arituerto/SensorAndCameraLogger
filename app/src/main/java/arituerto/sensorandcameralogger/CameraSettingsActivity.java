@@ -111,7 +111,7 @@ public class CameraSettingsActivity extends AppCompatActivity {
 
         sharedPreferences = getSharedPreferences(SHRDPRFS_NAME, MODE_PRIVATE);
 
-        mCameraId = sharedPreferences.getString(CAMID, null);
+        mCameraId = sharedPreferences.getString(CAMID, "0");
         mOutFormat = sharedPreferences.getInt(FORMAT, -1);
         mImageSizePos = sharedPreferences.getInt(SIZE, -1);
         mFocusMode = sharedPreferences.getInt(FOCUS, -1);
