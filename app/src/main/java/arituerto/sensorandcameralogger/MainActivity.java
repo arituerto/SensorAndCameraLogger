@@ -16,8 +16,6 @@ import android.widget.Switch;
 
 public class MainActivity extends AppCompatActivity {
 
-    // TODO: Add GPS logging
-
     private SharedPreferences mainPreferences;
 
     private static final String TAG = "MainActivity";
