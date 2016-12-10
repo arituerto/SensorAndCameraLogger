@@ -39,6 +39,40 @@ public class SensorSettingsActivity extends AppCompatActivity {
     private boolean[] mSelectedSensorList;
     private int mSensorDelay;
 
+    public String getSensorTypeName(int i) {
+        String outString = "";
+        switch (i) {
+            case (Sensor.TYPE_ACCELEROMETER): outString = "ACCELEROMETER"; break;
+            case (Sensor.TYPE_AMBIENT_TEMPERATURE): outString = "AMBIENT_TEMPERATURE"; break;
+            case (Sensor.TYPE_GAME_ROTATION_VECTOR): outString = "GAME_ROTATION_VECTOR"; break;
+            case (Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR): outString = "GEOMAGNETIC_ROTATION_VECTOR"; break;
+            case (Sensor.TYPE_GRAVITY): outString = "GRAVITY"; break;
+            case (Sensor.TYPE_GYROSCOPE): outString = "GYROSCOPE"; break;
+            case (Sensor.TYPE_GYROSCOPE_UNCALIBRATED): outString = "GYROSCOPE_UNCALIBRATED"; break;
+//            case (Sensor.TYPE_HEART_BEAT): outString = "HEART_BEAT"; break;
+            case (Sensor.TYPE_HEART_RATE): outString = "HEART_RATE"; break;
+            case (Sensor.TYPE_LIGHT): outString = "LIGHT"; break;
+            case (Sensor.TYPE_LINEAR_ACCELERATION): outString = "LINEAR_ACCELERATION"; break;
+            case (Sensor.TYPE_MAGNETIC_FIELD): outString = "MAGNETIC_FIELD"; break;
+            case (Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED): outString = "MAGNETIC_FIELD_UNCALIBRATED"; break;
+//            case (Sensor.TYPE_MOTION_DETECT): outString = "MOTION_DETECT"; break;
+            case (Sensor.TYPE_ORIENTATION): outString = "ORIENTATION"; break;
+//            case (Sensor.TYPE_POSE_6DOF): outString = "POSE_6DOF"; break;
+            case (Sensor.TYPE_PRESSURE): outString = "PRESSURE"; break;
+            case (Sensor.TYPE_PROXIMITY): outString = "PROXIMITY"; break;
+            case (Sensor.TYPE_RELATIVE_HUMIDITY): outString = "RELATIVE_HUMIDITY"; break;
+            case (Sensor.TYPE_ROTATION_VECTOR): outString = "ROTATION_VECTOR"; break;
+            case (Sensor.TYPE_SIGNIFICANT_MOTION): outString = "SIGNIFICANT_MOTION"; break;
+//            case (Sensor.TYPE_STATIONARY_DETECT): outString = "STATIONARY_DETECT"; break;
+            case (Sensor.TYPE_STEP_COUNTER): outString = "STEP_COUNTER"; break;
+            case (Sensor.TYPE_STEP_DETECTOR): outString = "STEP_DETECTOR"; break;
+            case (Sensor.TYPE_TEMPERATURE): outString = "TEMPERATURE"; break;
+            default: outString = "UNKNOWN_SENSOR"; break;
+
+        }
+        return outString;
+    }
+
     public String getSensorDelayName(int i) {
         String outString = "";
         switch (i) {
@@ -91,7 +125,7 @@ public class SensorSettingsActivity extends AppCompatActivity {
             Sensor iSensor = sensorList.get(i);
             String sensorString = iSensor.getName() +
                     "\n" +
-                    iSensor.getStringType().split("\\.")[iSensor.getStringType().split("\\.").length - 1].toUpperCase();
+                    getSensorTypeName(iSensor.getType());
             mNameSensorList.add(sensorString);
         }
 
