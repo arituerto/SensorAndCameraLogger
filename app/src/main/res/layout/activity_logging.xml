@@ -10,13 +10,6 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="arituerto.sensorandcameralogger.LoggingActivity">
 
-    <TextureView
-        android:id="@+id/textureViewLogging"
-        android:layout_width="300dp"
-        android:layout_height="400dp"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true" />
-
     <TextView
         android:text="TextView"
         android:layout_width="wrap_content"
@@ -71,5 +64,12 @@
         android:layout_alignBottom="@+id/buttonLog"
         android:layout_alignParentEnd="true"
         android:layout_toEndOf="@+id/textSensors" />
+
+    <SurfaceView
+        android:layout_width="300dp"
+        android:layout_height="400dp"
+        android:id="@+id/surfaceView"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true" />
 
 </RelativeLayout>

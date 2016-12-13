@@ -39,7 +39,7 @@ public class SensorSettingsActivity extends AppCompatActivity {
     private boolean[] mSelectedSensorList;
     private int mSensorDelay;
 
-    public String getSensorTypeName(int i) {
+    public static String getSensorTypeName(int i) {
         String outString = "";
         switch (i) {
             case (Sensor.TYPE_ACCELEROMETER): outString = "ACCELEROMETER"; break;
@@ -73,7 +73,7 @@ public class SensorSettingsActivity extends AppCompatActivity {
         return outString;
     }
 
-    public String getSensorDelayName(int i) {
+    public static String getSensorDelayName(int i) {
         String outString = "";
         switch (i) {
             case (SensorManager.SENSOR_DELAY_UI): outString =  "SENSOR_DELAY_UI"; break;

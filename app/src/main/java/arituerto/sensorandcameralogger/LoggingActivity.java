@@ -1,6 +1,5 @@
 package arituerto.sensorandcameralogger;
 
-import android.Manifest;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.content.ComponentName;
@@ -8,21 +7,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
-import android.graphics.SurfaceTexture;
+import android.graphics.PixelFormat;
+import android.graphics.Rect;
+import android.graphics.YuvImage;
+import android.hardware.Camera;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.hardware.camera2.CameraAccessException;
-import android.hardware.camera2.CameraCaptureSession;
-import android.hardware.camera2.CameraCharacteristics;
-import android.hardware.camera2.CameraDevice;
-import android.hardware.camera2.CameraManager;
-import android.hardware.camera2.CameraMetadata;
-import android.hardware.camera2.CaptureRequest;
-import android.hardware.camera2.TotalCaptureResult;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Build;
@@ -31,13 +24,12 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.SystemClock;
-import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.util.Size;
 import android.view.Surface;
-import android.view.TextureView;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
@@ -46,6 +38,7 @@ import android.widget.Toast;
 
 import com.mbientlab.metawear.MetaWearBleService;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -79,16 +72,12 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
     private Map<Sensor, Logger> mSensorLoggerMap = new HashMap<Sensor, Logger>();
     private int mSensorDelay;
 
-    private String mCameraId;
-    private Size mCameraSize;
-    private int mCameraAF;
+    private int mCameraId;
+    private Camera.Size mCameraSize;
+    private String mCameraAF;
     private int mOutputFormat;
     private File mCameraLoggingDir;
-    private CameraManager mCameraManager;
-    private CameraDevice mCameraDevice;
-    private CameraCaptureSession mCaptureSession;
-    private CaptureRequest.Builder mCameraRequestBuilder;
-    private CaptureRequest mCameraRequest;
+    private Camera mCameraDevice;
     private ImageReader mImgReader;
     private HandlerThread mHandlerThread;
     private Handler mHandler;
@@ -102,9 +91,7 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
     private CPROboardLog mLboard;
 
     //PREVIEW SURFACE
-    private Surface mPreviewSurface;
-    private Surface mReaderSurface;
-    private List<Surface> mSurfaceList = new ArrayList<Surface>();
+    private SurfaceHolder mPreviewHolder;
 
     // STOP ACTIVITY
     boolean mDoubleBackToExitPressedOnce = false;
@@ -183,12 +170,13 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
             cproLText.setText("CPRO L logging OFF");
         }
 
-        startCameraHandlerThread();
-        setupSurfaces(); // Chain reaction
+        // Camera
+        startCamera();
+
         if (mLogCamera) {
             cameraText.setText("Camera connecting");
             // Create Image Logging directory
-            mCameraLoggingDir = new File(mLoggingDir.getPath() + "/images_" + mCameraSize.getWidth() + "x" + mCameraSize.getHeight());
+            mCameraLoggingDir = new File(mLoggingDir.getPath() + "/images_" + mCameraSize.width + "x" + mCameraSize.height);
             try {
                 mCameraLoggingDir.mkdirs();
             } catch (SecurityException e) {
@@ -244,17 +232,16 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
 
         // CAMERA SETTINGS
         SharedPreferences cameraPrefs = getSharedPreferences(CameraSettingsActivity.SHRDPRFS_NAME, MODE_PRIVATE);
-        mCameraId = cameraPrefs.getString(CameraSettingsActivity.CAMID, null);
+        mCameraId = cameraPrefs.getInt(CameraSettingsActivity.CAMID, 0);
         mOutputFormat = cameraPrefs.getInt(CameraSettingsActivity.FORMAT, -1);
         int sizePos = cameraPrefs.getInt(CameraSettingsActivity.SIZE, -1);
-        try {
-            mCameraSize = ((CameraManager) getSystemService(CAMERA_SERVICE)).getCameraCharacteristics(mCameraId)
-                    .get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
-                    .getOutputSizes(mOutputFormat)[sizePos];
-        } catch (CameraAccessException e) {
+        mCameraAF = cameraPrefs.getString(CameraSettingsActivity.FOCUS, null);try {
+            Camera camera = Camera.open(mCameraId);
+            mCameraSize = camera.getParameters().getSupportedPictureSizes().get(sizePos);
+            camera.release();
+        } catch (Exception e) {
             e.printStackTrace();
         }
-        mCameraAF = cameraPrefs.getInt(CameraSettingsActivity.FOCUS, -1);
 
         // SENSOR SETTINGS
         SharedPreferences sensorsPrefs = getSharedPreferences(SensorSettingsActivity.SHRDPRFS_NAME, MODE_PRIVATE);
@@ -279,12 +266,16 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
     }
 
     private void stopLogging() {
+
         mLoggingON = false;
+
         if (mLogCPRO) {
             mRboard.deactivateLogging();
             mLboard.deactivateLogging();
         }
+
         writeSessionDescription();
+
         if (mLogSensor) {
             stopSensorLoggers();
             stopSensorListeners();
@@ -301,7 +292,6 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
                 e.printStackTrace();
             }
             closeCamera();
-            stopCameraHandlerThread();
         }
         Log.i(TAG, "Logging STOP");
         Toast.makeText(getApplicationContext(), "LOGGING STOPPED", Toast.LENGTH_LONG).show();
@@ -320,7 +310,7 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
                         mSensorList.get(iSensor),
                         mSensorDelay);
                 Sensor sensor = mSensorList.get(iSensor);
-                String sensorTypeString = sensor.getStringType();
+                String sensorTypeString = SensorSettingsActivity.getSensorTypeName(sensor.getType());
                 String[] parts = sensorTypeString.split("\\.");
                 loggerFileName = mLoggingDir.getPath() + "/sensor_" + parts[parts.length - 1].toUpperCase() + "_log.csv";
                 // First line: Data description
@@ -448,214 +438,134 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
     }
 
     // CAMERA FUNCTIONS
-    private void startCameraHandlerThread() {
-        mHandlerThread = new HandlerThread("Camera Thread");
+    private void startBackgroundThread() {
+
+        mHandlerThread = new HandlerThread("CameraBackground");
         mHandlerThread.start();
         mHandler = new Handler(mHandlerThread.getLooper());
+
     }
 
-    private void stopCameraHandlerThread() {
-        if (null != mHandlerThread) {
-            mHandlerThread.quitSafely();
-            try {
-                mHandlerThread.join();
-                mHandlerThread = null;
-                mHandlerThread = null;
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    }
+    private void stopBackgroundThread() {
 
-    private void setupSurfaces() {
-
-        Log.i(TAG, "setupSurfaces");
-
-        // IMAGE READER
-        if (mLogCamera) {
-            // TODO: Solve Image format issue
-            mImgReader = ImageReader.newInstance(mCameraSize.getWidth(), mCameraSize.getHeight(), ImageFormat.JPEG, 15);
-            mImgReader.setOnImageAvailableListener(mOnImageAvailableListener, mHandler);
-            mReaderSurface = mImgReader.getSurface();
-        }
-
-        // PREVIEW SURFACE
-        TextureView textureView = (TextureView) findViewById(R.id.textureViewLogging);
-        textureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
-            @Override
-            public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-                mPreviewSurface = new Surface(surface);
-                if (null != surface) {
-                    setupCamera();
-                }
-                Log.i("TextureView", "Surface Available");
-                Log.i("TextureView", "Surface size" + width + "x" + height);
-            }
-
-            @Override
-            public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-            }
-
-            @Override
-            public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
-                return false;
-            }
-
-            @Override
-            public void onSurfaceTextureUpdated(SurfaceTexture surface) {
-            }
-        });
-    }
-
-    private void setupCamera() {
-
-        Log.i(TAG, "setupCamera");
-
-        mCameraManager = (CameraManager) getSystemService(CAMERA_SERVICE);
+        mHandlerThread.quitSafely();
 
         try {
-            //Try to open the camera
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 1);
-                return;
-            }
-            mCameraManager.openCamera(mCameraId, mCameraStateCallback, mHandler);
-            if (mLogCamera) {
-                cameraText.setText("Camera connected");
-            }
-        } catch (CameraAccessException e) {
+
+            mHandlerThread.join();
+            mHandlerThread = null;
+            mHandler = null;
+
+        } catch (InterruptedException e) {
+
             e.printStackTrace();
         }
+
     }
+
+    private void startCamera() {
+        startBackgroundThread();
+        // Open Camera
+        try {
+            mCameraDevice = Camera.open(mCameraId);
+            // SET PARAMETERS
+            Camera.Parameters camParams = mCameraDevice.getParameters();
+            if ((camParams.getSupportedPreviewFormats() != null) & (camParams.getSupportedPreviewFormats().contains(mOutputFormat))) {
+                Log.i("startCamera", "Output format set to " + CameraSettingsActivity.getOutputFormatName(mOutputFormat));
+                mCameraDevice.getParameters().setPreviewFormat(mOutputFormat);
+            }
+
+            if ((camParams.getSupportedFocusModes() != null) & (camParams.getSupportedFocusModes().contains(mCameraAF))) {
+                Log.i("startCamera", "Focus mode set to " + CameraSettingsActivity.getAFModeName(mCameraAF));
+                mCameraDevice.getParameters().setFocusMode(mCameraAF);
+            }
+
+            if ((camParams.getSupportedPreviewSizes() != null) & (camParams.getSupportedPreviewSizes().contains(mCameraSize))) {
+                Log.i("startCamera", "Preview Size set to " + mCameraSize.width + "x" + mCameraSize.height);
+                mCameraDevice.getParameters().setPreviewSize(mCameraSize.width, mCameraSize.height);
+            }
+            // READ PARAMETERS (SETTING DOESN'T WORKS
+            mOutputFormat = mCameraDevice.getParameters().getPreviewFormat();
+            mCameraAF = mCameraDevice.getParameters().getFocusMode();
+            mCameraSize = mCameraDevice.getParameters().getPreviewSize();
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            cameraText.setText("Failed to acquire Camera");
+        }
+
+        // Setup Preview
+        SurfaceView surfaceView = (SurfaceView) findViewById(R.id.surfaceView);
+        mPreviewHolder = surfaceView.getHolder();
+        mPreviewHolder.addCallback(mPreviewHolderCallback);
+
+        // Create ImageReader if needed
+        if (mLogCamera) {
+            mCameraDevice.setPreviewCallback(mWriteCallback);
+        }
+    }
+
+    private SurfaceHolder.Callback mPreviewHolderCallback = new SurfaceHolder.Callback() {
+        @Override
+        public void surfaceCreated(SurfaceHolder holder) {
+            try {
+                mCameraDevice.setPreviewDisplay(holder);
+                mCameraDevice.startPreview();
+            } catch (IOException e) {
+                Log.e(TAG, "Failed to start preview");
+            }
+        }
+        @Override
+        public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {}
+        @Override
+        public void surfaceDestroyed(SurfaceHolder holder) {}
+    };
+
+    private Camera.PreviewCallback mWriteCallback = new Camera.PreviewCallback() {
+        @Override
+        public void onPreviewFrame(byte[] data, Camera camera) {
+            Log.i("mWriteCallbakc", "data received" + SystemClock.elapsedRealtimeNanos());
+            if (mLoggingON) {
+                long systemTime = SystemClock.elapsedRealtimeNanos();
+                // CREATE NAMES
+                String imgName = "img_" + systemTime + ".jpg";
+                String imgFileName = mCameraLoggingDir.getPath() + "/" + imgName;
+                // LOG DATA
+                String eventData = systemTime + "," + systemTime + "," + imgName;
+                try {
+                    mCameraLogger.log(eventData);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                 YuvImage yuv_image = new YuvImage(data, mOutputFormat, mCameraSize.width, mCameraSize.height, null);
+                Rect rect = new Rect(0, 0, mCameraSize.width, mCameraSize.height);
+                ByteArrayOutputStream output_stream = new ByteArrayOutputStream();
+                yuv_image.compressToJpeg(rect, 100, output_stream);
+                byte[] byt = output_stream.toByteArray();
+                try {
+                    FileOutputStream out = new FileOutputStream(imgFileName);
+                    out.write(byt);
+                    out.flush();
+                    out.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    };
 
     private void closeCamera() {
 
         Log.i(TAG, "closeCamera");
 
-        if (null != mCaptureSession) {
-            mCaptureSession.close();
-            mCaptureSession = null;
-        }
+        stopBackgroundThread();
 
         if (null != mCameraDevice) {
-            mCameraDevice.close();
+            mCameraDevice.stopPreview();
+            mCameraDevice.release();
             mCameraDevice = null;
         }
 
-        if (null != mImgReader) {
-            mImgReader.close();
-            mImgReader = null;
-        }
-
     }
-
-    private void setupCaptureSession() throws CameraAccessException {
-
-        Log.i(TAG, "setupCaptureSession");
-
-        mCameraRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-        mCameraRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, mCameraAF);
-        mCameraRequestBuilder.addTarget(mPreviewSurface);
-        if (mLogCamera) {
-            mCameraRequestBuilder.addTarget(mReaderSurface);
-        }
-        mSurfaceList.clear();
-        mSurfaceList.add(mPreviewSurface);
-        if (mLogCamera) {
-            mSurfaceList.add(mReaderSurface);
-        }
-        mCameraDevice.createCaptureSession(mSurfaceList, new CameraCaptureSession.StateCallback() {
-            @Override
-            public void onConfigured(CameraCaptureSession cameraCaptureSession) {
-                mCaptureSession = cameraCaptureSession;
-                try {
-                    mCameraRequest = mCameraRequestBuilder.build();
-                    mCaptureSession.setRepeatingRequest(mCameraRequest, mSessionCaptureCallback, mHandler);
-                } catch (CameraAccessException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            @Override
-            public void onConfigureFailed(CameraCaptureSession cameraCaptureSession) {
-            }
-        }, null);
-    }
-
-    private ImageReader.OnImageAvailableListener mOnImageAvailableListener = new ImageReader.OnImageAvailableListener() {
-        @Override
-        public void onImageAvailable(ImageReader reader) {
-            Image img = null;
-            try {
-                img = reader.acquireNextImage();
-                if (null != img) {
-                    if (mLoggingON) {
-                        // CREATE NAMES
-                        String imgName = "img_" + img.getTimestamp() + ".jpg";
-                        String imgFileName = mCameraLoggingDir.getPath() + "/" + imgName;
-                        // LOG DATA
-                        String eventData = SystemClock.elapsedRealtimeNanos() + "," + img.getTimestamp() + "," + imgName;
-                        try {
-                            mCameraLogger.log(eventData);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        processImage(img, imgFileName);
-                    } else {
-                        img.close();
-                    }
-                }
-            } catch (IllegalStateException e) {
-                e.printStackTrace();
-                Log.e("ImageReader", "No more buffers available, skipping frame");
-            }
-        }
-    };
-
-    private void processImage(Image image, String imgFileName) {
-        Image.Plane[] planes = image.getPlanes();
-        ByteBuffer buffer = planes[0].getBuffer();
-        byte[] bytes = new byte[buffer.capacity()];
-        buffer.get(bytes);
-        image.close();
-        try {
-            FileOutputStream out = new FileOutputStream(imgFileName);
-            out.write(bytes);
-            out.flush();
-            out.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private CameraDevice.StateCallback mCameraStateCallback = new CameraDevice.StateCallback() {
-        @Override
-        public void onOpened(CameraDevice camera) {
-            Log.d("CameraDevice", "Camera device opened!");
-            mCameraDevice = camera;
-            try {
-                setupCaptureSession();
-            } catch (CameraAccessException e) {
-                e.printStackTrace();
-            }
-        }
-
-        @Override
-        public void onDisconnected(CameraDevice camera) {
-            Log.d("CameraDevice", "Camera device disconnected!");
-            mCameraDevice = null;
-        }
-
-        @Override
-        public void onError(CameraDevice camera, int error) {
-            Log.d("CameraDevice", "Camera device error: " + error);
-        }
-    };
-
-    private CameraCaptureSession.CaptureCallback mSessionCaptureCallback = new CameraCaptureSession.CaptureCallback() {
-        @Override
-        public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {}
-    };
 
     // SESSION DESCRIPTION
     private void writeSessionDescription() {
@@ -683,59 +593,38 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
 
             if (mLogCamera) {
 
-                string = "CAMERA_RESOLUTION, " + mCameraSize.getWidth() + "x" + mCameraSize.getHeight() + System.lineSeparator();
+                string = "CAMERA_RESOLUTION, " + mCameraSize.width + "x" + mCameraSize.height + System.lineSeparator();
                 outputStream.write(string.getBytes());
-
-                switch (mCameraAF) {
-                    case (CameraCharacteristics.CONTROL_AF_MODE_AUTO):
-                        string = "CAMERA_AF_MODE, CONTROL_AF_MODE_AUTO" + System.lineSeparator();
-                        break;
-                    case (CameraCharacteristics.CONTROL_AF_MODE_CONTINUOUS_PICTURE):
-                        string = "CAMERA_AF_MODE, CONTROL_AF_MODE_CONTINUOUS_PICTURE" + System.lineSeparator();
-                        break;
-                    case (CameraCharacteristics.CONTROL_AF_MODE_CONTINUOUS_VIDEO):
-                        string = "CAMERA_AF_MODE, CONTROL_AF_MODE_CONTINUOUS_PICTURE" + System.lineSeparator();
-                        break;
-                    case (CameraCharacteristics.CONTROL_AF_MODE_EDOF):
-                        string = "CAMERA_AF_MODE, CONTROL_AF_MODE_EDOF" + System.lineSeparator();
-                        break;
-                    case (CameraCharacteristics.CONTROL_AF_MODE_MACRO):
-                        string = "CAMERA_AF_MODE, CONTROL_AF_MODE_MACRO" + System.lineSeparator();
-                        break;
-                    case (CameraCharacteristics.CONTROL_AF_MODE_OFF):
-                        string = "CAMERA_AF_MODE, CONTROL_AF_MODE_OFF" + System.lineSeparator();
-                        break;
-                }
+                string = "CAMERA_AF_MODE, " + CameraSettingsActivity.getAFModeName(mCameraAF) + System.lineSeparator();
                 outputStream.write(string.getBytes());
-
                 string = "CAMERA_OUTPUT_FORMAT," + CameraSettingsActivity.getOutputFormatName(mOutputFormat) + System.lineSeparator();
                 outputStream.write(string.getBytes());
 
-                CameraCharacteristics cc = mCameraManager.getCameraCharacteristics(mCameraId);
-                switch (cc.get(CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE)) {
-                    case (CameraMetadata.SENSOR_INFO_TIMESTAMP_SOURCE_UNKNOWN):
-                        string = "CAMERA_TIMESTAMP_SOURCE, SENSOR_INFO_TIMESTAMP_SOURCE_UNKNOWN" + System.lineSeparator();
-                        break;
-                    case (CameraMetadata.SENSOR_INFO_TIMESTAMP_SOURCE_REALTIME):
-                        string = "CAMERA_TIMESTAMP_SOURCE, SENSOR_INFO_TIMESTAMP_SOURCE_REALTIME" + System.lineSeparator();
-                        break;
-                }
-                outputStream.write(string.getBytes());
-
-                if (null != cc.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION)) {
-                    string = "CAMERA_INTRINSIC_CALIBRATION, " + cc.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION).toString() + System.lineSeparator();
-                    outputStream.write(string.getBytes());
-                }
-
-                if (null != cc.get(CameraCharacteristics.LENS_POSE_TRANSLATION)) {
-                    string = "CAMERA_POSE_TRANSLATION, " + cc.get(CameraCharacteristics.LENS_POSE_TRANSLATION).toString() + System.lineSeparator();
-                    outputStream.write(string.getBytes());
-                }
-
-                if (null != cc.get(CameraCharacteristics.LENS_POSE_ROTATION)) {
-                    string = "CAMERA_POSE_ROTATION, " + cc.get(CameraCharacteristics.LENS_POSE_ROTATION).toString() + System.lineSeparator();
-                    outputStream.write(string.getBytes());
-                }
+//                CameraCharacteristics cc = mCameraManager.getCameraCharacteristics(mCameraId);
+//                switch (cc.get(CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE)) {
+//                    case (CameraMetadata.SENSOR_INFO_TIMESTAMP_SOURCE_UNKNOWN):
+//                        string = "CAMERA_TIMESTAMP_SOURCE, SENSOR_INFO_TIMESTAMP_SOURCE_UNKNOWN" + System.lineSeparator();
+//                        break;
+//                    case (CameraMetadata.SENSOR_INFO_TIMESTAMP_SOURCE_REALTIME):
+//                        string = "CAMERA_TIMESTAMP_SOURCE, SENSOR_INFO_TIMESTAMP_SOURCE_REALTIME" + System.lineSeparator();
+//                        break;
+//                }
+//                outputStream.write(string.getBytes());
+//
+//                if (null != cc.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION)) {
+//                    string = "CAMERA_INTRINSIC_CALIBRATION, " + cc.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION).toString() + System.lineSeparator();
+//                    outputStream.write(string.getBytes());
+//                }
+//
+//                if (null != cc.get(CameraCharacteristics.LENS_POSE_TRANSLATION)) {
+//                    string = "CAMERA_POSE_TRANSLATION, " + cc.get(CameraCharacteristics.LENS_POSE_TRANSLATION).toString() + System.lineSeparator();
+//                    outputStream.write(string.getBytes());
+//                }
+//
+//                if (null != cc.get(CameraCharacteristics.LENS_POSE_ROTATION)) {
+//                    string = "CAMERA_POSE_ROTATION, " + cc.get(CameraCharacteristics.LENS_POSE_ROTATION).toString() + System.lineSeparator();
+//                    outputStream.write(string.getBytes());
+//                }
 
                 string = "CAMERA_N_IMAGES, " + (mCameraLogger.getnLogs() - 1) + " [" + ((float) (mCameraLogger.getnLogs() - 1) / sessionTime) + " Hz]" + System.lineSeparator();
                 outputStream.write(string.getBytes());
