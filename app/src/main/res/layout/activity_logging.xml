@@ -65,11 +65,18 @@
         android:layout_alignParentEnd="true"
         android:layout_toEndOf="@+id/textSensors" />
 
+    <com.google.atap.tangoservice.TangoCameraPreview
+        android:layout_width="300dp"
+        android:layout_height="400dp"
+        android:id="@+id/tangoSurface"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true" />
+
     <SurfaceView
         android:layout_width="300dp"
         android:layout_height="400dp"
-        android:id="@+id/surfaceView"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true" />
+        android:layout_alignTop="@+id/tangoSurface"
+        android:layout_alignStart="@+id/tangoSurface"
+        android:id="@+id/cameraView" />
 
 </RelativeLayout>

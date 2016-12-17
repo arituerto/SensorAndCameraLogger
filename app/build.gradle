@@ -27,4 +27,6 @@ dependencies {
     compile 'com.android.support:appcompat-v7:23.4.0'
     compile 'com.mbientlab:metawear:2.7.0'
     testCompile 'junit:junit:4.12'
+    compile project(':TangoSDK_Argentine_Tango_Java')
+    compile project(':TangoSupport_Argentine_Tango_Java')
 }

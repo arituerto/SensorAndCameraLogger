@@ -3,6 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/SensorAndCameraLogger.iml" filepath="$PROJECT_DIR$/SensorAndCameraLogger.iml" />
+      <module fileurl="file://$PROJECT_DIR$/TangoSDK_Argentine_Tango_Java/TangoSDK_Argentine_Tango_Java.iml" filepath="$PROJECT_DIR$/TangoSDK_Argentine_Tango_Java/TangoSDK_Argentine_Tango_Java.iml" />
+      <module fileurl="file://$PROJECT_DIR$/TangoSupport_Argentine_Tango_Java/TangoSupport_Argentine_Tango_Java.iml" filepath="$PROJECT_DIR$/TangoSupport_Argentine_Tango_Java/TangoSupport_Argentine_Tango_Java.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
     </modules>
   </component>

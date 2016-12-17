@@ -9,6 +9,8 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/TangoSDK_Argentine_Tango_Java" />
+            <option value="$PROJECT_DIR$/TangoSupport_Argentine_Tango_Java" />
             <option value="$PROJECT_DIR$/app" />
           </set>
         </option>
