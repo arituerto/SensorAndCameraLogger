@@ -1,1 +1,1 @@
-include ':app'
+include ':app', ':TangoSupport_Argentine_Tango_Java', ':TangoSDK_Argentine_Tango_Java'

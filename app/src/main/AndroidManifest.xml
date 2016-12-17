@@ -29,7 +29,8 @@
         <activity android:name=".SensorSettingsActivity" />
         <activity android:name=".CameraSettingsActivity" />
         <activity android:name=".LoggingActivity" />
-        <activity android:name=".CPROSettingsActivity"></activity>
+        <activity android:name=".CPROSettingsActivity" />
+        <activity android:name=".TangoSettingsActivity"></activity>
     </application>
 
 </manifest>

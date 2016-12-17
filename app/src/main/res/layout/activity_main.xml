@@ -87,4 +87,23 @@
         android:layout_toStartOf="@+id/buttonCPROSettings"
         android:layout_below="@+id/cameraSwitch" />
 
+    <Switch
+        android:text="Log Tango"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/TangoSwitch"
+        android:layout_below="@+id/buttonCPROSettings"
+        android:layout_alignParentStart="true"
+        android:layout_toStartOf="@+id/buttonCPROSettings"
+        android:layout_alignBottom="@+id/buttonTangoSettings" />
+
+    <Button
+        android:text="TANGO SETTINGS"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/buttonCPROSettings"
+        android:id="@+id/buttonTangoSettings"
+        android:layout_alignParentEnd="true"
+        android:layout_toEndOf="@+id/cproSwitch" />
+
 </RelativeLayout>

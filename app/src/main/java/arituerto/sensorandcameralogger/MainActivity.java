@@ -13,6 +13,7 @@ import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Switch;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -24,6 +25,7 @@ public class MainActivity extends AppCompatActivity {
     public static String CAMLOG = "CameraLog";
     public static String SNSLOG = "SensorLog";
     public static String CPROLOG = "cproLog";
+    public static String TNGLOG = "tangoLog";
     public static String DTSTNAME = "dataSetName";
 
     // SENSORS
@@ -34,6 +36,9 @@ public class MainActivity extends AppCompatActivity {
 
     // CPRO
     private boolean mLogCPRO;
+
+    // TANGO
+    private boolean mLogTango;
 
     // LOGGING
     private String dataSetName;
@@ -60,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
         mLogSensor = mainPreferences.getBoolean(SNSLOG, false);
         mLogCamera = mainPreferences.getBoolean(CAMLOG, false);
         mLogCPRO = mainPreferences.getBoolean(CPROLOG, false);
+        mLogTango = mainPreferences.getBoolean(TNGLOG, false);
         dataSetName = mainPreferences.getString(DTSTNAME, "test");
 
         EditText textEntry = (EditText) findViewById(R.id.inputDataSetName);
@@ -80,21 +86,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        Switch cproSwitch = (Switch) findViewById(R.id.cproSwitch);
-        cproSwitch.setChecked(mLogCPRO);
-        cproSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    mLogCPRO = true;
-                    Log.i(TAG, "CPRO Logging ON");
-                } else {
-                    mLogCPRO = false;
-                    Log.i(TAG, "CPRO Logging OFF");
-                }
-            }
-        });
-
         Switch cameraSwitch = (Switch) findViewById(R.id.cameraSwitch);
         cameraSwitch.setChecked(mLogCamera);
         cameraSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -110,6 +101,36 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        Switch cproSwitch = (Switch) findViewById(R.id.cproSwitch);
+        cproSwitch.setChecked(mLogCPRO);
+        cproSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    mLogCPRO = true;
+                    Log.i(TAG, "CPRO Logging ON");
+                } else {
+                    mLogCPRO = false;
+                    Log.i(TAG, "CPRO Logging OFF");
+                }
+            }
+        });
+
+        Switch tangoSwitch = (Switch) findViewById(R.id.TangoSwitch);
+        tangoSwitch.setChecked(mLogTango);
+        tangoSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    mLogTango = true;
+                    Log.i(TAG, "Tango Logging ON");
+                } else {
+                    mLogTango = false;
+                    Log.i(TAG, "Tango Logging OFF");
+                }
+            }
+        });
+
 
         final Button sensorSettingsButton = (Button) findViewById(R.id.buttonSensorSettings);
         sensorSettingsButton.setOnClickListener(sensorSettingsClick);
@@ -119,6 +140,14 @@ public class MainActivity extends AppCompatActivity {
 
         final Button cameraSettingsButton = (Button) findViewById(R.id.buttonCameraSettings);
         cameraSettingsButton.setOnClickListener(cameraSettingsClick);
+
+        Button tangoSettingsButton = (Button) findViewById(R.id.buttonTangoSettings);
+        tangoSettingsButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(getApplicationContext(), "NOTHING TO CONFIGURE", Toast.LENGTH_SHORT).show();
+            }
+        });
 
         final Button startButton = (Button) findViewById(R.id.buttonStartLogging);
         startButton.setOnClickListener(startClick);
@@ -132,9 +161,13 @@ public class MainActivity extends AppCompatActivity {
             EditText textEntry = (EditText) findViewById(R.id.inputDataSetName);
             dataSetName = textEntry.getText().toString();
 
+            if (mLogCamera == mLogTango) {
+                Toast.makeText(getApplicationContext(), "Camera settings defined by Tango", Toast.LENGTH_LONG).show();
+            }
             mainPreferences.edit().putBoolean(SNSLOG, mLogSensor).commit();
             mainPreferences.edit().putBoolean(CAMLOG, mLogCamera).commit();
             mainPreferences.edit().putBoolean(CPROLOG, mLogCPRO).commit();
+            mainPreferences.edit().putBoolean(TNGLOG, mLogTango).commit();
             mainPreferences.edit().putString(DTSTNAME, dataSetName).commit();
 
             Intent intent = new Intent(MainActivity.this, LoggingActivity.class);
