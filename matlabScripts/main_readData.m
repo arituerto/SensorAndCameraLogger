@@ -2,7 +2,6 @@
 % package in android.
 
 close all;
-clear all;
 
 datasetFolder = '/mnt/DATA/Datasets/androidDatasets/datasets';
 
@@ -211,6 +210,26 @@ for it_sensor = 1:length(sensor_reads)
     text(0, it_sensor + 0.25, datatype, 'Interpreter', 'none');
 end
 
+%% Plot signals
+% Accelerometers
+f_accelerometer = figure;
+hold on;
+grid on;
+xlabel('TIME [ns]');
+ylabel('ACC. MAGNITUDE [g]');
+plot(accelerometer.evntTime - min_sys_time, sqrt(sum(accelerometer.value .* accelerometer.value, 2)) / 9.81);
+if exist('cL_accelerometer', 'var')
+    plot(cL_accelerometer.sysTime - min_sys_time, sqrt(sum(cL_accelerometer.value .* cL_accelerometer.value, 2)) / 9.81);
+else
+    plot(accelerometer.evntTime - min_sys_time, zeros(size(accelerometer.evntTime)));
+end
+if exist('cR_accelerometer', 'var')
+    plot(cR_accelerometer.sysTime - min_sys_time, sqrt(sum(cR_accelerometer.value .* cR_accelerometer.value, 2)));
+else
+    plot(accelerometer.evntTime - min_sys_time, zeros(size(accelerometer.evntTime)));
+end
+legend('Accelerometer','Left CPRO Accelerometer','Right CPRO Accelerometer');
+
 %% ESQUELETON FOR DATA PROCESSING
 % Next code follows the sys_time_val that contains the sorted times of all
 % the sensor readings. At each time the last (more recent) reading of each
@@ -220,24 +239,48 @@ fig = figure;
 sensor_reads_current = [];
 sensor_reads_previous = [];
 
-pause_time = (1/1000000000)*((sys_time_val(end) - sys_time_val(1))/length(sys_time_val));
+time_current = sys_time_val(1);
+time_previous = time_current - 0.01;
+
+previous_camera_time = [];
 
 for (i_time = 1:length(sys_time_val))
     
-    sensor_reads_previous = sensor_reads_current;
-    
     time_current = sys_time_val(i_time);
     
-    for it_sensor = 1:length(sensor_reads)
-        sensor_reads_current = [sensor_reads_current;...
-            getLastRead(sensor_reads(it_sensor), time_current)];
+    current_camera = getLastRead(camera, time_current);
+    current_camera_time = current_camera.evntTime;
+    
+    if ~isempty(current_camera_time)
+        if ~isempty(previous_camera_time) &&...
+                (current_camera_time ~= previous_camera_time)
+            
+            img = imread(sprintf('%s/%s/images_%s/%s',datasetFolder,...
+                collectionName, imgres, current_camera.value{1}));
+            
+            figure(fig);
+            hold off;
+            imshow(img);
+            hold on;
+            text(10, 10, sprintf('TIME: %d', time_current));
+            
+            previous_camera_time = current_camera_time;
+            
+            pause(0.01);
+        else
+            
+            img = imread(sprintf('%s/%s/images_%s/%s',datasetFolder,...
+                collectionName, imgres, current_camera.value{1}));
+            
+            figure(fig);
+            hold off;
+            imshow(img);
+            hold on;
+            text(10, 10, sprintf('TIME: %f', time_current));
+            
+            previous_camera_time = current_camera_time;
+            
+            pause(0.01);
+        end
     end
-    
-    showCurrentSensorReads(fig,...
-        datasetFolder, collectionName, imgres,...
-        sensor_reads_current,...
-        time_current);
-    
-    pause(pause_time);
-    
 end
