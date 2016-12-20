@@ -177,21 +177,15 @@ for it_sensor = 1:length(sensors_read)
         size(sensors_read(it_sensor).value,2),...
         length(sensors_read(it_sensor).sysTime)/...
         ((1/1000000000)*(sensors_read(it_sensor).sysTime(end)-sensors_read(it_sensor).sysTime(1))));
-    if strcmp(sensors_read(it_sensor).datatype, 'CAMERA')
-        img = imread(sprintf('%s/%s/images_%s/%s',datasetFolder,...
-            collectionName,imgres,listOfImg(it_img).name));
-        fprintf('                        %6d x %4d %1d ch\n',size(img,2),size(img,1),...
-            size(img,3))
-    end
-    
 end
+fprintf('For more info check the session_description.txt file);
+
 img = imread(sprintf('%s/%s/images_%s/%s',datasetFolder,...
     collectionName,imgres,listOfImg(it_img).name));
 fprintf('\n                IMAGES: %6d images, %3.3f Hz\n',length(listOfImg),...
     length(imgTime)/(imgTime(end)-imgTime(1)));
 fprintf('                        %6d x %4d %1d ch\n',size(img,2),size(img,1),...
     size(img,3));
-fprintf('For more info check the session_description.txt file\n');
 
 % Events in time and synchronization
 fig = figure;
