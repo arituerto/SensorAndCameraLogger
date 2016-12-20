@@ -14,7 +14,7 @@ imgext = '.jpg';
 
 % Read the sensors log files
 data_times = [];
-sensors_read = [];
+sensor_reads = [];
 listOfLogFiles = dir(sprintf('%s/%s/sensor_*_log.csv',datasetFolder,collectionName));
 for it_log = 1:length(listOfLogFiles)
     datatype = listOfLogFiles(it_log).name(8:end-8);
@@ -31,7 +31,7 @@ for it_log = 1:length(listOfLogFiles)
                 accelerometer.evntTime = table2array(datatable(:,2));
                 data_times = [data_times; accelerometer.evntTime];
                 accelerometer.value = table2array(datatable(:,3:end));
-                sensors_read = [sensors_read; accelerometer];
+                sensor_reads = [sensor_reads; accelerometer];
                 
             case 'LINEAR_ACCELERATION'
                 linaccelerometer.datatype = datatype;
@@ -39,7 +39,7 @@ for it_log = 1:length(listOfLogFiles)
                 linaccelerometer.evntTime = table2array(datatable(:,2));
                 data_times = [data_times; linaccelerometer.evntTime];
                 linaccelerometer.value = table2array(datatable(:,3:end));
-                sensors_read = [sensors_read; linaccelerometer];
+                sensor_reads = [sensor_reads; linaccelerometer];
                 
             case 'GRAVITY'
                 gravity.datatype = datatype;
@@ -47,7 +47,7 @@ for it_log = 1:length(listOfLogFiles)
                 gravity.evntTime = table2array(datatable(:,2));
                 data_times = [data_times; gravity.evntTime];
                 gravity.value = table2array(datatable(:,3:end));
-                sensors_read = [sensors_read; gravity];
+                sensor_reads = [sensor_reads; gravity];
                 
             case 'GYROSCOPE'
                 gyroscope.datatype = datatype;
@@ -55,7 +55,7 @@ for it_log = 1:length(listOfLogFiles)
                 gyroscope.evntTime = table2array(datatable(:,2));
                 data_times = [data_times; gyroscope.evntTime];
                 gyroscope.value = table2array(datatable(:,3:end));
-                sensors_read = [sensors_read; gyroscope];
+                sensor_reads = [sensor_reads; gyroscope];
                 
             case 'GAME_ROTATION_VECTOR'
                 gamerotationvector.datatype = datatype;
@@ -63,7 +63,7 @@ for it_log = 1:length(listOfLogFiles)
                 gamerotationvector.evntTime = table2array(datatable(:,2));
                 data_times = [data_times; gamerotationvector.evntTime];
                 gamerotationvector.value = table2array(datatable(:,3:end));
-                sensors_read = [sensors_read; gamerotationvector];
+                sensor_reads = [sensor_reads; gamerotationvector];
                 
             case 'ROTATION_VECTOR'
                 rotationvector.datatype = datatype;
@@ -71,7 +71,7 @@ for it_log = 1:length(listOfLogFiles)
                 rotationvector.evntTime = table2array(datatable(:,2));
                 data_times = [data_times; rotationvector.evntTime];
                 rotationvector.value = table2array(datatable(:,3:end));
-                sensors_read = [sensors_read; rotationvector];
+                sensor_reads = [sensor_reads; rotationvector];
                 
                 % CPRO R EXTERTAL SENSOR
             case 'CPRO_R_ACCELEROMETER'
@@ -80,7 +80,7 @@ for it_log = 1:length(listOfLogFiles)
                 cR_accelerometer.evntTime = table2array(datatable(:,2));
                 data_times = [data_times; cR_accelerometer.sysTime];
                 cR_accelerometer.value = table2array(datatable(:,3:end));
-                sensors_read = [sensors_read; cR_accelerometer];
+                sensor_reads = [sensor_reads; cR_accelerometer];
                 
             case 'CPRO_R_BAROMETER'
                 cR_barometer.datatype = datatype;
@@ -88,7 +88,7 @@ for it_log = 1:length(listOfLogFiles)
                 cR_barometer.evntTime = table2array(datatable(:,2));
                 data_times = [data_times; cR_barometer.sysTime];
                 cR_barometer.value = table2array(datatable(:,3:end));
-                sensors_read = [sensors_read; cR_barometer];
+                sensor_reads = [sensor_reads; cR_barometer];
                 
             case 'CPRO_R_GYROSCOPE'
                 cR_gyroscope.datatype = datatype;
@@ -96,7 +96,7 @@ for it_log = 1:length(listOfLogFiles)
                 cR_gyroscope.evntTime = table2array(datatable(:,2));
                 data_times = [data_times; cR_gyroscope.sysTime];
                 cR_gyroscope.value = table2array(datatable(:,3:end));
-                sensors_read = [sensors_read; cR_gyroscope];
+                sensor_reads = [sensor_reads; cR_gyroscope];
                 
             case 'CPRO_R_STEPS'
                 cR_steps.datatype = datatype;
@@ -104,7 +104,7 @@ for it_log = 1:length(listOfLogFiles)
                 cR_steps.evntTime = table2array(datatable(:,2));
                 data_times = [data_times; cR_steps.sysTime];
                 cR_steps.value = table2array(datatable(:,3:end));
-                sensors_read = [sensors_read; cR_steps];
+                sensor_reads = [sensor_reads; cR_steps];
                 
                 % CPRO R EXTERTAL SENSOR
             case 'CPRO_L_ACCELEROMETER'
@@ -113,7 +113,7 @@ for it_log = 1:length(listOfLogFiles)
                 cL_accelerometer.evntTime = table2array(datatable(:,2));
                 data_times = [data_times; cL_accelerometer.sysTime];
                 cL_accelerometer.value = table2array(datatable(:,3:end));
-                sensors_read = [sensors_read; cL_accelerometer];
+                sensor_reads = [sensor_reads; cL_accelerometer];
                 
             case 'CPRO_L_BAROMETER'
                 cL_barometer.datatype = datatype;
@@ -121,7 +121,7 @@ for it_log = 1:length(listOfLogFiles)
                 cL_barometer.evntTime = table2array(datatable(:,2));
                 data_times = [data_times; cL_barometer.sysTime];
                 cL_barometer.value = table2array(datatable(:,3:end));
-                sensors_read = [sensors_read; cL_barometer];
+                sensor_reads = [sensor_reads; cL_barometer];
                 
             case 'CPRO_L_GYROSCOPE'
                 cL_gyroscope.datatype = datatype;
@@ -129,7 +129,7 @@ for it_log = 1:length(listOfLogFiles)
                 cL_gyroscope.evntTime = table2array(datatable(:,2));
                 data_times = [data_times; cL_gyroscope.sysTime];
                 cL_gyroscope.value = table2array(datatable(:,3:end));
-                sensors_read = [sensors_read; cL_gyroscope];
+                sensor_reads = [sensor_reads; cL_gyroscope];
                 
             case 'CPRO_L_STEPS'
                 cL_steps.datatype = datatype;
@@ -137,7 +137,7 @@ for it_log = 1:length(listOfLogFiles)
                 cL_steps.evntTime = table2array(datatable(:,2));
                 data_times = [data_times; cL_steps.sysTime];
                 cL_steps.value = table2array(datatable(:,3:end));
-                sensors_read = [sensors_read; cL_steps];
+                sensor_reads = [sensor_reads; cL_steps];
                 
                 % CAMERA
             case 'CAMERA'
@@ -146,7 +146,7 @@ for it_log = 1:length(listOfLogFiles)
                 camera.evntTime = table2array(datatable(:,2));
                 data_times = [data_times; camera.evntTime];
                 camera.value = table2array(datatable(:,3:end));
-                sensors_read = [sensors_read; camera];
+                sensor_reads = [sensor_reads; camera];
         end
     end
 end
@@ -170,14 +170,14 @@ sys_time_val = unique(data_times);
 % Print information about the data acquired
 fprintf('\nData collection: %s\n',collectionName);
 fprintf('Data time: %2.2f [secs]\n',(1/1000000000)*(max_sys_time-min_sys_time));
-for it_sensor = 1:length(sensors_read)
+for it_sensor = 1:length(sensor_reads)
     fprintf('\n  %20s: %6d reads (%d values), %3.3f Hz\n',...
-        sensors_read(it_sensor).datatype,...
-        length(sensors_read(it_sensor).sysTime),...
-        size(sensors_read(it_sensor).value,2),...
-        length(sensors_read(it_sensor).sysTime)/...
-        ((1/1000000000)*(sensors_read(it_sensor).sysTime(end)-sensors_read(it_sensor).sysTime(1))));
-    if strcmp(sensors_read(it_sensor).datatype, 'CAMERA')
+        sensor_reads(it_sensor).datatype,...
+        length(sensor_reads(it_sensor).sysTime),...
+        size(sensor_reads(it_sensor).value,2),...
+        length(sensor_reads(it_sensor).sysTime)/...
+        ((1/1000000000)*(sensor_reads(it_sensor).sysTime(end)-sensor_reads(it_sensor).sysTime(1))));
+    if strcmp(sensor_reads(it_sensor).datatype, 'CAMERA')
         img = imread(sprintf('%s/%s/images_%s/%s',datasetFolder,...
             collectionName,imgres,listOfImg(it_img).name));
         fprintf('                        %6d x %4d %1d ch\n',size(img,2),size(img,1),...
@@ -193,20 +193,51 @@ fprintf('                        %6d x %4d %1d ch\n',size(img,2),size(img,1),...
     size(img,3));
 fprintf('For more info check the session_description.txt file\n');
 
-% Events in time and synchronization
+%% Events in time and synchronization
 fig = figure;
 hold on;
 grid on;
-axis([-0.1 max_sys_time-min_sys_time 0 length(sensors_read)+1]);
-for it_sensor = 1:length(sensors_read)
-    datatype = sensors_read(it_sensor).datatype;
+axis([-0.1 max_sys_time-min_sys_time 0 length(sensor_reads)+1]);
+for it_sensor = 1:length(sensor_reads)
+    datatype = sensor_reads(it_sensor).datatype;
     if strcmp(datatype(1:4),'CPRO')
-        toplot_x = sensors_read(it_sensor).sysTime - min_sys_time;
+        toplot_x = sensor_reads(it_sensor).sysTime - min_sys_time;
         toplot_y = it_sensor * (ones(size(toplot_x)));
     else
-        toplot_x = sensors_read(it_sensor).evntTime - min_sys_time;
+        toplot_x = sensor_reads(it_sensor).evntTime - min_sys_time;
         toplot_y = it_sensor * (ones(size(toplot_x)));
     end
     plot(toplot_x, toplot_y,'.');
     text(0, it_sensor + 0.25, datatype, 'Interpreter', 'none');
+end
+
+%% ESQUELETON FOR DATA PROCESSING
+% Next code follows the sys_time_val that contains the sorted times of all
+% the sensor readings. At each time the last (more recent) reading of each
+% sensor is provided.
+fig = figure;
+
+sensor_reads_current = [];
+sensor_reads_previous = [];
+
+pause_time = (1/1000000000)*((sys_time_val(end) - sys_time_val(1))/length(sys_time_val));
+
+for (i_time = 1:length(sys_time_val))
+    
+    sensor_reads_previous = sensor_reads_current;
+    
+    time_current = sys_time_val(i_time);
+    
+    for it_sensor = 1:length(sensor_reads)
+        sensor_reads_current = [sensor_reads_current;...
+            getLastRead(sensor_reads(it_sensor), time_current)];
+    end
+    
+    showCurrentSensorReads(fig,...
+        datasetFolder, collectionName, imgres,...
+        sensor_reads_current,...
+        time_current);
+    
+    pause(pause_time);
+    
 end
