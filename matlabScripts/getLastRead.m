@@ -13,7 +13,7 @@ function sensor_read_current = getLastRead(sensor_read,...
         sensor_read_current.datatype = sensor_read.datatype;
         sensor_read_current.sysTime = sensor_read.sysTime(k(end));
         sensor_read_current.evntTime = sensor_read.evntTime(k(end));
-        sensor_read_current.value = sensor_read.value(k(end));
+        sensor_read_current.value = sensor_read.value(k(end),:);
     else
         sensor_read_current.datatype = sensor_read.datatype;
         sensor_read_current.sysTime = [];

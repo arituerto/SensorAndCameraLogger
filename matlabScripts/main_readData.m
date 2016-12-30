@@ -3,11 +3,11 @@
 
 close all;
 
-datasetFolder = '/mnt/DATA/Datasets/androidDatasets/datasets';
+datasetFolder = '/mnt/DATA/Datasets/androidDatasets/datasets/2016-12-20';
 
-collectionName = '2016-12-05_152331_samsung_SM-G925F_10steps';
+collectionName = 'samsung_SM-G925F_FloorTracker_full4floor';
 
-imgres = '640x480';
+imgres = '480x640';
 imgext = '.jpg';
 
 
@@ -252,35 +252,27 @@ for (i_time = 1:length(sys_time_val))
     current_camera_time = current_camera.evntTime;
     
     if ~isempty(current_camera_time)
-        if ~isempty(previous_camera_time) &&...
-                (current_camera_time ~= previous_camera_time)
-            
-            img = imread(sprintf('%s/%s/images_%s/%s',datasetFolder,...
-                collectionName, imgres, current_camera.value{1}));
-            
-            figure(fig);
-            hold off;
-            imshow(img);
-            hold on;
-            text(10, 10, sprintf('TIME: %d', time_current));
-            
-            previous_camera_time = current_camera_time;
-            
-            pause(0.01);
-        else
-            
-            img = imread(sprintf('%s/%s/images_%s/%s',datasetFolder,...
-                collectionName, imgres, current_camera.value{1}));
-            
-            figure(fig);
-            hold off;
-            imshow(img);
-            hold on;
-            text(10, 10, sprintf('TIME: %f', time_current));
-            
-            previous_camera_time = current_camera_time;
-            
-            pause(0.01);
+        
+        img = imread(sprintf('%s/%s/images_%s/%s',datasetFolder,...
+            collectionName, imgres, current_camera.value{1}));
+        
+        figure(fig);
+        hold off;
+        imshow(img);
+        hold on;
+        text(10, 10, sprintf('TIME: %f', time_current));
+        
+        current_camera_quaternion = getLastRead(gamerotationvector, current_camera_time);
+        if ~isempty(current_camera_quaternion.value)
+            current_camera_R = qGetR(current_camera_quaternion.value);
+            text(10, 75, sprintf('ROTATION:\n  % 3.2f % 3.2f % 3.2f\n  % 3.2f % 3.2f % 3.2f\n  % 3.2f % 3.2f % 3.2f\n',...
+                current_camera_R(1,1), current_camera_R(1,2), current_camera_R(1,3),...
+                current_camera_R(2,1), current_camera_R(2,2), current_camera_R(2,3),...
+                current_camera_R(3,1), current_camera_R(3,2), current_camera_R(3,3)));
         end
+        
+        previous_camera_time = current_camera_time;
+        
+        pause(0.01);
     end
 end

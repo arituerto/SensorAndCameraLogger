@@ -3,11 +3,11 @@
 
 close all;
 
-datasetFolder = '/mnt/DATA/Datasets/androidDatasets/datasets';
+datasetFolder = '/mnt/DATA/Datasets/androidDatasets/datasets/2016-12-20';
 
-collectionName = '2016-12-05_152331_samsung_SM-G925F_10steps';
+collectionName = 'samsung_SM-G925F_FloorTracker_full4floor';
 
-imgres = '640x480';
+imgres = '480x640';
 imgext = '.jpg';
 
 
@@ -213,8 +213,22 @@ end
 %% Plot signals
 % Accelerometers
 f_accelerometer = figure;
+hold on;
 grid on;
-plot(accelerometer.evntTime, accel)
+xlabel('TIME [ns]');
+ylabel('ACC. MAGNITUDE [g]');
+plot(accelerometer.evntTime - min_sys_time, sqrt(sum(accelerometer.value .* accelerometer.value, 2)) / 9.81);
+if exist('cL_accelerometer', 'var')
+    plot(cL_accelerometer.sysTime - min_sys_time, sqrt(sum(cL_accelerometer.value .* cL_accelerometer.value, 2)) / 9.81);
+else
+    plot(accelerometer.evntTime - min_sys_time, zeros(size(accelerometer.evntTime)));
+end
+if exist('cR_accelerometer', 'var')
+    plot(cR_accelerometer.sysTime - min_sys_time, sqrt(sum(cR_accelerometer.value .* cR_accelerometer.value, 2)));
+else
+    plot(accelerometer.evntTime - min_sys_time, zeros(size(accelerometer.evntTime)));
+end
+legend('Accelerometer','Left CPRO Accelerometer','Right CPRO Accelerometer');
 
 %% ESQUELETON FOR DATA PROCESSING
 % Next code follows the sys_time_val that contains the sorted times of all
@@ -236,37 +250,26 @@ for (i_time = 1:length(sys_time_val))
     
     current_camera = getLastRead(camera, time_current);
     current_camera_time = current_camera.evntTime;
+    current_camera_quaternion = getLast(gamerotationvector, current_camera_time);
+    current_camera_R = qGetR(current_camera_quaternion);
     
     if ~isempty(current_camera_time)
-        if ~isempty(previous_camera_time) &&...
-                (current_camera_time ~= previous_camera_time)
-            
-            img = imread(sprintf('%s/%s/images_%s/%s',datasetFolder,...
-                collectionName, imgres, current_camera.value{1}));
-            
-            figure(fig);
-            hold off;
-            imshow(img);
-            hold on;
-            text(10, 10, sprintf('TIME: %d', time_current));
-            
-            previous_camera_time = current_camera_time;
-            
-            pause(0.01);
-        else
-            
-            img = imread(sprintf('%s/%s/images_%s/%s',datasetFolder,...
-                collectionName, imgres, current_camera.value{1}));
-            
-            figure(fig);
-            hold off;
-            imshow(img);
-            hold on;
-            text(10, 10, sprintf('TIME: %f', time_current));
-            
-            previous_camera_time = current_camera_time;
-            
-            pause(0.01);
-        end
+        
+        img = imread(sprintf('%s/%s/images_%s/%s',datasetFolder,...
+            collectionName, imgres, current_camera.value{1}));
+        
+        figure(fig);
+        hold off;
+        imshow(img);
+        hold on;
+        text(10, 10, sprintf('TIME: %f', time_current));
+        text(10, 25, sprintf('ROTATION: % 3.2f % 3.2f % 3.2f\n % 3.2f % 3.2f % 3.2f\n % 3.2f % 3.2f % 3.2f\n',...
+            current_camera_R(1,1), current_camera_R(1,1), current_camera_R(1,3),...
+            current_camera_R(1,1), current_camera_R(1,1), current_camera_R(1,1),...
+            current_camera_R(1,1), current_camera_R(1,1), current_camera_R(1,1));
+        
+        previous_camera_time = current_camera_time;
+        
+        pause(0.01);
     end
 end
