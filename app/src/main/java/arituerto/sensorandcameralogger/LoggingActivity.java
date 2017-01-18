@@ -99,8 +99,6 @@ public class LoggingActivity
     private TangoConfig mTangoConfig;
     private TangoCameraPreview tangoCameraPreview;
     private Logger mTangoPoseLogger;
-    private Logger mTangoDepthLogger;
-    private File mDepthLoggingDir;
 
     //PREVIEW SURFACE
     private SurfaceHolder mPreviewHolder;
@@ -638,9 +636,7 @@ public class LoggingActivity
         outTangoConfig.putBoolean(TangoConfig.KEY_BOOLEAN_COLORCAMERA, true);
 
         // DEPTH
-        outTangoConfig.putBoolean(TangoConfig.KEY_BOOLEAN_DEPTH, true);
-        outTangoConfig.putInt(TangoConfig.KEY_INT_RUNTIME_DEPTH_FRAMERATE, 5);
-        outTangoConfig.putInt(TangoConfig.KEY_INT_DEPTH_MODE, TangoConfig.TANGO_DEPTH_MODE_POINT_CLOUD);
+        outTangoConfig.putBoolean(TangoConfig.KEY_BOOLEAN_DEPTH, false);
 
         return outTangoConfig;
     }
@@ -676,6 +672,9 @@ public class LoggingActivity
                     ArrayList<TangoCoordinateFramePair> framePairs = new ArrayList<TangoCoordinateFramePair>();
                     framePairs.add(new TangoCoordinateFramePair(
                             TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE,
+                            TangoPoseData.COORDINATE_FRAME_DEVICE));
+                    framePairs.add(new TangoCoordinateFramePair(
+                            TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
                             TangoPoseData.COORDINATE_FRAME_DEVICE));
 
                     // CONNECT LISTENERS
@@ -733,22 +732,7 @@ public class LoggingActivity
 
                         @Override
                         public void onPointCloudAvailable(TangoPointCloudData tangoPointCloudData) {
-                            if (mLoggingON) {
-                                long systemTime = SystemClock.elapsedRealtimeNanos();
-                                // CREATE NAMES
-                                String depthName = "depth_" + systemTime + ".csv";
-                                // LOG DATA
-                                String eventData = systemTime + "," + tangoPointCloudData.timestamp + "," + depthName;
-                                try {
-                                    mTangoDepthLogger.log(eventData);
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-                                DepthSaver saver = new DepthSaver();
-                                saver.execute(new DepthSaverParams(tangoPointCloudData.numPoints,
-                                        tangoPointCloudData.points,
-                                        depthName));
-                            }
+
                         }
                     });
                 }
@@ -756,35 +740,28 @@ public class LoggingActivity
         });
     }
 
-    private void createTangoLoggers() {if (mLogCamera) {
+    private void createTangoLoggers() {
+        if (mLogCamera) {
 
-        // Create Image Logging directory
-        mCameraLoggingDir = new File(mLoggingDir.getPath() + "/images_" + mCameraSize.width + "x" + mCameraSize.height);
-        try {
-            mCameraLoggingDir.mkdirs();
-        } catch (SecurityException e) {
-            e.printStackTrace();
-        }
-
-        // Create Image Logging directory
-        mCameraLoggingDir = new File(mLoggingDir.getPath() + "/images_" + mCameraSize.width + "x" + mCameraSize.height);
-        try {
-            mCameraLoggingDir.mkdirs();
-        } catch (SecurityException e) {
-            e.printStackTrace();
-        }
-        // Create Camera Logger
-        try {
-            mCameraLogger = new Logger(mLoggingDir.getPath() + "/sensor_CAMERA_log.csv");
+            // Create Image Logging directory
+            mCameraLoggingDir = new File(mLoggingDir.getPath() + "/images_" + mCameraSize.width + "x" + mCameraSize.height);
             try {
-                mCameraLogger.log("// SYSTEM_TIME [ns], EVENT_TIMESTAMP [s], IMG_NAME");
-            } catch (IOException e) {
+                mCameraLoggingDir.mkdirs();
+            } catch (SecurityException e) {
                 e.printStackTrace();
             }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            // Create Camera Logger
+            try {
+                mCameraLogger = new Logger(mLoggingDir.getPath() + "/sensor_CAMERA_log.csv");
+                try {
+                    mCameraLogger.log("// SYSTEM_TIME [ns], EVENT_TIMESTAMP [s], IMG_NAME");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
         }
-    }
 
         // Create Tango Pose Logger
         try {
@@ -797,64 +774,6 @@ public class LoggingActivity
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
-
-        // Create Depth Logging directory
-        mDepthLoggingDir = new File(mLoggingDir.getPath() + "/depth");
-        try {
-            mDepthLoggingDir.mkdirs();
-        } catch (SecurityException e) {
-            e.printStackTrace();
-        }
-
-        // Create Tango Depth Logger
-        try {
-            mTangoDepthLogger = new Logger(mLoggingDir.getPath() + "/sensor_TANGO_DEPTH_log.csv");
-            try {
-                mTangoDepthLogger.log("// SYSTEM_TIME [ns], EVENT_TIMESTAMP [s], FILENAME");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-
-    }
-
-    private class DepthSaverParams {
-        int nPoints;
-        FloatBuffer data;
-        String depthName;
-
-        DepthSaverParams(int innPoints, FloatBuffer inData, String inDepthName) {
-            this.nPoints = innPoints;
-            this.data = inData.duplicate();
-            this.depthName = inDepthName;
-        }
-    }
-
-    private class DepthSaver extends AsyncTask<DepthSaverParams, Void, Boolean> {
-        @Override
-        protected Boolean doInBackground(DepthSaverParams... params) {
-            DepthSaverParams depthData = params[0];
-            String depthFileName = mDepthLoggingDir.getPath() + "/" + depthData.depthName;
-            // SAVE DEPTH DATA
-            try {
-                BufferedOutputStream stream = new BufferedOutputStream(new FileOutputStream(depthFileName));
-                String toWrite = depthData.nPoints+ System.lineSeparator();
-                for (int i = 0; i < depthData.data.capacity(); i++) {
-                     toWrite += depthData.data.get(i) + ",";
-                }
-                toWrite += System.lineSeparator();
-                stream.write(toWrite.getBytes());
-                stream.flush();
-                stream.close();
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return false;
-        }
     }
 
     private void closeTango() {
@@ -866,12 +785,6 @@ public class LoggingActivity
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }
-
-        try {
-            mTangoDepthLogger.close();
-        } catch (IOException e) {
-            e.printStackTrace();
         }
 
         try {
@@ -926,9 +839,6 @@ public class LoggingActivity
             if (mLogTango) {
 
                 string = "POSE_N_READINGS, " + (mTangoPoseLogger.getnLogs() - 1) + " [" + ((float) (mTangoPoseLogger.getnLogs() - 1) / sessionTime) + " Hz]" + System.lineSeparator();
-                outputStream.write(string.getBytes());
-
-                string = "DEPTH_N_READINGS, " + (mTangoDepthLogger.getnLogs() - 1) + " [" + ((float) (mTangoDepthLogger.getnLogs() - 1) / sessionTime) + " Hz]" + System.lineSeparator();
                 outputStream.write(string.getBytes());
 
             }
