@@ -555,6 +555,10 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
 
         mCameraRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
         mCameraRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, mCameraAF);
+        if (mCameraAF == CameraCharacteristics.CONTROL_AF_MODE_OFF) {
+            mCameraRequestBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, 0.0f);
+            Log.i(TAG, "AUTO FOCUS OFF. FOCUS DISTANCE: 0.0f");
+        }
         mCameraRequestBuilder.addTarget(mPreviewSurface);
         if (mLogCamera) {
             mCameraRequestBuilder.addTarget(mReaderSurface);

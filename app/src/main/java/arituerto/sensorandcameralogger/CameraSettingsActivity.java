@@ -1,6 +1,7 @@
 package arituerto.sensorandcameralogger;
 
 import android.content.SharedPreferences;
+import android.graphics.Camera;
 import android.graphics.ImageFormat;
 import android.graphics.PixelFormat;
 import android.hardware.camera2.CameraAccessException;
@@ -26,6 +27,7 @@ public class CameraSettingsActivity extends AppCompatActivity {
     public static String SIZE = "size";
     public static String FORMAT = "format";
     public static String FOCUS = "afMode";
+    public static String FOCUSDIST = "fDist";
 
     private SharedPreferences sharedPreferences;
 
@@ -263,6 +265,7 @@ public class CameraSettingsActivity extends AppCompatActivity {
             @Override
             public void onNothingSelected(AdapterView<?> parent) {}
         });
+
     }
 
 }
