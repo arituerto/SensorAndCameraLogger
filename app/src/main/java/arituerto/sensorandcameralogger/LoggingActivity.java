@@ -151,10 +151,11 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
         readPreferences();
 
         // Create Logging directory
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HHmmss");
-        String currentDateAndTime = sdf.format(new Date());
+        SimpleDateFormat sdf_date = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat sdf_hour = new SimpleDateFormat("HH-mm-ss");
         mLoggingDir = new File(Environment.getExternalStorageDirectory().getPath() +
-                "/" + currentDateAndTime +
+                "/" + sdf_date.format(new Date()) +
+                "/" + sdf_hour.format(new Date()) +
                 "_" + Build.MANUFACTURER +
                 "_" + Build.MODEL +
                 "_" + mDataSetName);
