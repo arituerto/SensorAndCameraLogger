@@ -99,48 +99,46 @@ public class SensorSettingsActivity extends AppCompatActivity {
         mSelectedSensorList = loadBooleanArray(SNSSELECTION, sharedPreferences);
         mSensorDelay = sharedPreferences.getInt(SNSDELAY, SensorManager.SENSOR_DELAY_NORMAL);
 
-        if (mSelectedSensorList == null) {
+        mSelectedSensorList = new boolean[sensorList.size()];
 
-            mSelectedSensorList = new boolean[sensorList.size()];
+        for (int i = 0; i < sensorList.size(); i++) {
+            Sensor iSensor = sensorList.get(i);
+            int sensorType = iSensor.getType();
+            switch (sensorType) {
+                case Sensor.TYPE_ACCELEROMETER:
+                    mSelectedSensorList[i] = true;
+                    break;
+                case Sensor.TYPE_GYROSCOPE:
+                    mSelectedSensorList[i] = true;
+                    break;
+                case Sensor.TYPE_MAGNETIC_FIELD:
+                    mSelectedSensorList[i] = true;
+                    break;
+                case Sensor.TYPE_ROTATION_VECTOR:
+                    mSelectedSensorList[i] = true;
+                    break;
+                case Sensor.TYPE_GAME_ROTATION_VECTOR:
+                    mSelectedSensorList[i] = true;
+                    break;
+                case Sensor.TYPE_GRAVITY:
+                    mSelectedSensorList[i] = true;
+                    break;
+                case Sensor.TYPE_LINEAR_ACCELERATION:
+                    mSelectedSensorList[i] = true;
+                    break;
+                case Sensor.TYPE_PRESSURE:
+                    mSelectedSensorList[i] = true;
+                    break;
+                case Sensor.TYPE_STEP_COUNTER:
+                    mSelectedSensorList[i] = true;
+                    break;
+                case Sensor.TYPE_STEP_DETECTOR:
+                    mSelectedSensorList[i] = true;
+                    break;
+                default:
+                    mSelectedSensorList[i] = false;
+                    break;
 
-            for (int i = 0; i < sensorList.size(); i++) {
-                Sensor iSensor = sensorList.get(i);
-                int sensorType = iSensor.getType();
-                switch (sensorType) {
-                    case Sensor.TYPE_ACCELEROMETER:
-                        mSelectedSensorList[i] = true;
-                        break;
-                    case Sensor.TYPE_GYROSCOPE:
-                        mSelectedSensorList[i] = true;
-                        break;
-                    case Sensor.TYPE_MAGNETIC_FIELD:
-                        mSelectedSensorList[i] = true;
-                        break;
-                    case Sensor.TYPE_ROTATION_VECTOR:
-                        mSelectedSensorList[i] = true;
-                        break;
-                    case Sensor.TYPE_GAME_ROTATION_VECTOR:
-                        mSelectedSensorList[i] = true;
-                        break;
-                    case Sensor.TYPE_GRAVITY:
-                        mSelectedSensorList[i] = true;
-                        break;
-                    case Sensor.TYPE_LINEAR_ACCELERATION:
-                        mSelectedSensorList[i] = true;
-                        break;
-                    case Sensor.TYPE_PRESSURE:
-                        mSelectedSensorList[i] = true;
-                        break;
-                    case Sensor.TYPE_STEP_COUNTER:
-                        mSelectedSensorList[i] = true;
-                        break;
-                    case Sensor.TYPE_STEP_DETECTOR:
-                        mSelectedSensorList[i] = true;
-                        break;
-                    default:
-                        mSelectedSensorList[i] = false;
-                        break;
-                }
             }
         }
 
