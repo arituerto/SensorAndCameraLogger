@@ -9,7 +9,9 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
+import android.graphics.PixelFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -35,6 +37,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.Range;
 import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
@@ -475,7 +478,8 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
         // IMAGE READER
         if (mLogCamera) {
             // TODO: Solve Image format issue
-            mImgReader = ImageReader.newInstance(mCameraSize.getWidth(), mCameraSize.getHeight(), ImageFormat.JPEG, 15);
+            mImgReader = ImageReader.newInstance(mCameraSize.getWidth(), mCameraSize.getHeight(),
+                    PixelFormat.RGBA_8888, 10);
             mImgReader.setOnImageAvailableListener(mOnImageAvailableListener, mHandler);
             mReaderSurface = mImgReader.getSurface();
         }
@@ -554,7 +558,8 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
 
         Log.i(TAG, "setupCaptureSession");
 
-        mCameraRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+        mCameraRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
+        mCameraRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CameraCharacteristics.CONTROL_AE_MODE_ON);
         mCameraRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, mCameraAF);
         if (mCameraAF == CameraCharacteristics.CONTROL_AF_MODE_OFF) {
             mCameraRequestBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, 0.0f);
@@ -605,7 +610,7 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                        processImage(img, imgFileName);
+                        processImage2(img, imgFileName);
                     } else {
                         img.close();
                     }
@@ -627,6 +632,26 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
             FileOutputStream out = new FileOutputStream(imgFileName);
             out.write(bytes);
             out.flush();
+            out.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void processImage2(Image image, String imgFileName) {
+        final Image.Plane[] planes = image.getPlanes();
+        final ByteBuffer buffer = planes[0].getBuffer();
+        int pixelStride = planes[0].getPixelStride();
+        int rowStride = planes[0].getRowStride();
+        int rowPadding = rowStride - pixelStride * mCameraSize.getWidth();
+        // create bitmap
+        Bitmap bitmap = Bitmap.createBitmap(mCameraSize.getWidth() + rowPadding / pixelStride,
+                mCameraSize.getHeight(), Bitmap.Config.ARGB_8888);
+        bitmap.copyPixelsFromBuffer(buffer);
+        image.close();
+        try {
+            FileOutputStream out = new FileOutputStream(imgFileName);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
             out.close();
         } catch (Exception e) {
             e.printStackTrace();
@@ -727,20 +752,20 @@ public class LoggingActivity extends AppCompatActivity implements SensorEventLis
                 }
                 outputStream.write(string.getBytes());
 
-                if (null != cc.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION)) {
-                    string = "CAMERA_INTRINSIC_CALIBRATION, " + cc.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION).toString() + System.lineSeparator();
-                    outputStream.write(string.getBytes());
-                }
-
-                if (null != cc.get(CameraCharacteristics.LENS_POSE_TRANSLATION)) {
-                    string = "CAMERA_POSE_TRANSLATION, " + cc.get(CameraCharacteristics.LENS_POSE_TRANSLATION).toString() + System.lineSeparator();
-                    outputStream.write(string.getBytes());
-                }
-
-                if (null != cc.get(CameraCharacteristics.LENS_POSE_ROTATION)) {
-                    string = "CAMERA_POSE_ROTATION, " + cc.get(CameraCharacteristics.LENS_POSE_ROTATION).toString() + System.lineSeparator();
-                    outputStream.write(string.getBytes());
-                }
+//                if (null != cc.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION)) {
+//                    string = "CAMERA_INTRINSIC_CALIBRATION, " + cc.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION).toString() + System.lineSeparator();
+//                    outputStream.write(string.getBytes());
+//                }
+//
+//                if (null != cc.get(CameraCharacteristics.LENS_POSE_TRANSLATION)) {
+//                    string = "CAMERA_POSE_TRANSLATION, " + cc.get(CameraCharacteristics.LENS_POSE_TRANSLATION).toString() + System.lineSeparator();
+//                    outputStream.write(string.getBytes());
+//                }
+//
+//                if (null != cc.get(CameraCharacteristics.LENS_POSE_ROTATION)) {
+//                    string = "CAMERA_POSE_ROTATION, " + cc.get(CameraCharacteristics.LENS_POSE_ROTATION).toString() + System.lineSeparator();
+//                    outputStream.write(string.getBytes());
+//                }
 
                 string = "CAMERA_N_IMAGES, " + (mCameraLogger.getnLogs() - 1) + " [" + ((float) (mCameraLogger.getnLogs() - 1) / sessionTime) + " Hz]" + System.lineSeparator();
                 outputStream.write(string.getBytes());
